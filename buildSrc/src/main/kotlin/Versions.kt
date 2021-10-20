@@ -19,6 +19,8 @@ object Versions {
         const val springBoot = "2.5.5"
         const val springDependencyManagement = "1.0.11.RELEASE"
         const val web3j = "4.8.4"
+        const val flyway = "8.0.1"
+        const val jooq = "6.0.1"
     }
 
     object Tools {
@@ -35,5 +37,6 @@ object Versions {
         const val assertk = "0.24"
         const val wireMock = "2.27.2"
         const val testContainers = "1.15.3"
+        const val postgresDriver = "42.3.0"
     }
 }
