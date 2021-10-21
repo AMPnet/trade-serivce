@@ -35,7 +35,7 @@ class BlockchainEventService(private val chainPropertiesHandler: ChainProperties
             ?: throw InternalException(
                 ErrorCode.BLOCKCHAIN_JSON_RPC,
                 "Failed to fetch events from $startBlockNumber to $endBlockNumber block, " +
-                        "for OrderBook contract: $contract"
+                    "for OrderBook contract: $contract"
             )
         val logs = ethLog.logs.mapNotNull { it.get() as? EthLog.LogObject }
         return generateEvents(logs, chainProperties, chainId)

@@ -1,10 +1,10 @@
 package com.ampnet.tradeservice.blockchain.properties
 
+import com.ampnet.tradeservice.configuration.ApplicationProperties
+import com.ampnet.tradeservice.configuration.ChainProperties
 import com.ampnet.tradeservice.exception.ErrorCode
 import com.ampnet.tradeservice.exception.InternalException
 import com.ampnet.tradeservice.exception.InvalidRequestException
-import com.ampnet.tradeservice.configuration.ApplicationProperties
-import com.ampnet.tradeservice.configuration.ChainProperties
 import org.springframework.stereotype.Service
 import org.web3j.crypto.Credentials
 import org.web3j.protocol.Web3j

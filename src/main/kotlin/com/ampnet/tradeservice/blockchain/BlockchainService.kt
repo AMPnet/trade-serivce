@@ -57,7 +57,7 @@ class BlockchainService(
             .ethSendRawTransaction(manager.sign(rawTransaction)).sendSafely()
         logger.info {
             "Successfully send request to mint token: " +
-                    "[on chainId=$chainId for stockId=$stockId in tokenAmount=$tokenAmount] to wallet=$wallet]"
+                "[on chainId=$chainId for stockId=$stockId in tokenAmount=$tokenAmount] to wallet=$wallet]"
         }
         return sentTransaction?.transactionHash
     }
@@ -84,7 +84,7 @@ class BlockchainService(
             .ethSendRawTransaction(manager.sign(rawTransaction)).sendSafely()
         logger.info {
             "Successfully send request to burn token: " +
-                    "[on chainId=$chainId for stockId=$stockId in tokenAmount=$tokenAmount to wallet=$wallet]"
+                "[on chainId=$chainId for stockId=$stockId in tokenAmount=$tokenAmount to wallet=$wallet]"
         }
         return sentTransaction?.transactionHash
     }
@@ -93,7 +93,7 @@ class BlockchainService(
     fun settle(chainId: Long, orderId: UInt, usdAmount: UInt, tokenAmount: UInt, wallet: String): String? {
         logger.info {
             "Settle: [on chainId=$chainId for orderId=$orderId in usdAmount=$usdAmount " +
-                    "for tokenAmount=$tokenAmount to wallet=$wallet]"
+                "for tokenAmount=$tokenAmount to wallet=$wallet]"
         }
         val blockchainProperties = chainHandler.getBlockchainProperties(chainId)
         val nonce = blockchainProperties.web3j
@@ -103,7 +103,9 @@ class BlockchainService(
         logger.debug { "Gas price: $gasPrice" }
 
         val function = Function(
-            "settle", listOf(wallet.toAddress(), orderId.toUint(), usdAmount.toUint(), tokenAmount.toUint()), emptyList()
+            "settle",
+            listOf(wallet.toAddress(), orderId.toUint(), usdAmount.toUint(), tokenAmount.toUint()),
+            emptyList()
         )
         val rawTransaction = RawTransaction.createTransaction(
             nonce, gasPrice, gasLimit, blockchainProperties.chain.stockAddress, FunctionEncoder.encode(function)
@@ -114,7 +116,7 @@ class BlockchainService(
             .ethSendRawTransaction(manager.sign(rawTransaction)).sendSafely()
         logger.info {
             "Successfully send to settle: [on chainId=$chainId for orderId=$orderId in usdAmount=$usdAmount " +
-                    "for tokenAmount=$tokenAmount] to wallet=[$wallet]"
+                "for tokenAmount=$tokenAmount] to wallet=[$wallet]"
         }
         return sentTransaction?.transactionHash
     }

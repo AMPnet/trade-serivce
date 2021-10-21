@@ -11,15 +11,15 @@ data class Event(
     val amount: BigInteger? = null,
     val timestamp: BigInteger? = null
 ) {
-    constructor(chainId: Long, event: Events.BuyOrderCreatedEventResponse): this(
+    constructor(chainId: Long, event: Events.BuyOrderCreatedEventResponse) : this(
         chainId, EventType.BUY, event.wallet, event.stockId, event.amount, event.timestamp
     )
 
-    constructor(chainId: Long, event: Events.SellOrderCreatedEventResponse): this(
+    constructor(chainId: Long, event: Events.SellOrderCreatedEventResponse) : this(
         chainId, EventType.SELL, event.wallet, event.stockId, event.amount, event.timestamp
     )
 
-    constructor(chainId: Long, event: Events.OrderSettledEventResponse): this(
+    constructor(chainId: Long, event: Events.OrderSettledEventResponse) : this(
         chainId, EventType.SETTLE
     )
 }
