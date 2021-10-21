@@ -96,6 +96,7 @@ dependencies {
 
     implementation("org.web3j:core:${Versions.Dependencies.web3j}")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.Dependencies.kotlinCoroutines}")
+    implementation("org.jobrunr:jobrunr-spring-boot-starter:${Versions.Dependencies.jobrunr}")
     implementation("io.github.microutils:kotlin-logging-jvm:${Versions.Dependencies.kotlinLogging}")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
