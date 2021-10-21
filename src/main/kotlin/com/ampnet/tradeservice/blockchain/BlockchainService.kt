@@ -2,6 +2,7 @@ package com.ampnet.tradeservice.blockchain
 
 import com.ampnet.tradeservice.blockchain.properties.ChainPropertiesHandler
 import com.ampnet.tradeservice.configuration.ApplicationProperties
+import com.ampnet.tradeservice.exception.ErrorCode
 import com.ampnet.tradeservice.exception.InternalException
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
@@ -14,7 +15,6 @@ import org.web3j.abi.datatypes.Function
 import org.web3j.abi.datatypes.Uint
 import org.web3j.crypto.RawTransaction
 import org.web3j.protocol.core.DefaultBlockParameterName
-import org.web3j.protocol.core.RemoteFunctionCall
 import org.web3j.protocol.core.Request
 import org.web3j.protocol.core.Response
 import org.web3j.tx.RawTransactionManager
@@ -124,6 +124,13 @@ class BlockchainService(
         val web3j = chainHandler.getBlockchainProperties(chainId).web3j
         val transaction = web3j.ethGetTransactionReceipt(hash).sendSafely()
         return transaction?.transactionReceipt?.isPresent ?: false
+    }
+
+    @Throws(InternalException::class)
+    fun getBlockNumber(chainId: Long): BigInteger {
+        val chainProperties = chainHandler.getBlockchainProperties(chainId)
+        return chainProperties.web3j.ethBlockNumber().sendSafely()?.blockNumber
+            ?: throw InternalException(ErrorCode.BLOCKCHAIN_JSON_RPC, "Failed to fetch latest block number")
     }
 
     internal fun getGasPrice(chainId: Long): BigInteger? {
