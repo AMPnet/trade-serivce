@@ -21,6 +21,7 @@ import mu.KLogging
 import org.springframework.stereotype.Component
 
 @Component
+@Suppress("TooManyFunctions")
 class LoggingUngroupedWrapper : EUngrouped {
 
     companion object : KLogging()
@@ -36,7 +37,7 @@ class LoggingUngroupedWrapper : EUngrouped {
     override fun updateMktDepth(tickerId: Int, position: Int, operation: Int, side: Int, price: Double, size: Int) {
         logger.info {
             "updateMktDepth(tickerId: $tickerId, position: $position, operation: $operation, side: $side," +
-                    " price: $price, size: $size)"
+                " price: $price, size: $size)"
         }
     }
 
@@ -52,7 +53,7 @@ class LoggingUngroupedWrapper : EUngrouped {
     ) {
         logger.info {
             "updateMktDepthL2(tickerId: $tickerId, position: $position, marketMaker: $marketMaker," +
-                    " operation: $operation, side: $side, price: $price, size: $size, isSmartDepth: $isSmartDepth)"
+                " operation: $operation, side: $side, price: $price, size: $size, isSmartDepth: $isSmartDepth)"
         }
     }
 
@@ -85,7 +86,7 @@ class LoggingUngroupedWrapper : EUngrouped {
     ) {
         logger.info {
             "scannerData(reqId: $reqId, rank: $rank, contractDetails: $contractDetails, distance: $distance," +
-                    " benchmark: $benchmark, projection: $projection, legsStr: $legsStr)"
+                " benchmark: $benchmark, projection: $projection, legsStr: $legsStr)"
         }
     }
 
@@ -106,7 +107,7 @@ class LoggingUngroupedWrapper : EUngrouped {
     ) {
         logger.info {
             "realtimeBar(reqId: $reqId, time: $time, open: $open, high: $high, low: $low, close: $close," +
-                    " volume: $volume, wap: $wap, count: $count)"
+                " volume: $volume, wap: $wap, count: $count)"
         }
     }
 
@@ -176,7 +177,7 @@ class LoggingUngroupedWrapper : EUngrouped {
     ) {
         logger.info {
             "positionMulti(reqId: $reqId, account: $account, modelCode: $modelCode, contract: $contract," +
-                    " pos: $pos, avgCost: $avgCost)"
+                " pos: $pos, avgCost: $avgCost)"
         }
     }
 
@@ -195,8 +196,8 @@ class LoggingUngroupedWrapper : EUngrouped {
     ) {
         logger.info {
             "securityDefinitionOptionalParameter(reqId: $reqId, exchange: $exchange," +
-                    " underlyingConId: $underlyingConId, tradingClass: $tradingClass, multiplier: $multiplier," +
-                    " expirations: $expirations, strikes: $strikes)"
+                " underlyingConId: $underlyingConId, tradingClass: $tradingClass, multiplier: $multiplier," +
+                " expirations: $expirations, strikes: $strikes)"
         }
     }
 
@@ -245,7 +246,7 @@ class LoggingUngroupedWrapper : EUngrouped {
     ) {
         logger.info {
             "historicalNews(requestId: $requestId, time: $time, providerCode: $providerCode," +
-                    " articleId: $articleId, headline: $headline)"
+                " articleId: $articleId, headline: $headline)"
         }
     }
 
@@ -293,7 +294,7 @@ class LoggingUngroupedWrapper : EUngrouped {
     ) {
         logger.info {
             "pnlSingle(reqId: $reqId, pos: $pos, dailyPnL: $dailyPnL, unrealizedPnL: $unrealizedPnL," +
-                    " realizedPnL: $realizedPnL, value: $value)"
+                " realizedPnL: $realizedPnL, value: $value)"
         }
     }
 

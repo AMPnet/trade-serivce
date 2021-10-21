@@ -31,8 +31,8 @@ class LoggingOrderWrapper : EOrder {
     ) {
         logger.info {
             "orderStatus(orderId: $orderId, status: $status, filled: $filled, remaining: $remaining," +
-                    " avgFillPrice: $avgFillPrice, permId: $permId, parentId: $parentId," +
-                    " lastFillPrice: $lastFillPrice, clientId: $clientId, whyHeld: $whyHeld, mktCapPrice: $mktCapPrice)"
+                " avgFillPrice: $avgFillPrice, permId: $permId, parentId: $parentId," +
+                " lastFillPrice: $lastFillPrice, clientId: $clientId, whyHeld: $whyHeld, mktCapPrice: $mktCapPrice)"
         }
     }
 

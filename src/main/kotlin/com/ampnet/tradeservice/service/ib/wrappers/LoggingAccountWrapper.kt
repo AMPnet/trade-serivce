@@ -26,8 +26,8 @@ class LoggingAccountWrapper : EAccount {
     ) {
         logger.info {
             "updatePortfolio(contract: $contract, position: $position, marketPrice: $marketPrice," +
-                    " marketValue: $marketValue, averageCost: $averageCost, unrealizedPNL: $unrealizedPNL," +
-                    " realizedPNL: $realizedPNL, accountName: $accountName)"
+                " marketValue: $marketValue, averageCost: $averageCost, unrealizedPNL: $unrealizedPNL," +
+                " realizedPNL: $realizedPNL, accountName: $accountName)"
         }
     }
 
@@ -59,7 +59,7 @@ class LoggingAccountWrapper : EAccount {
     ) {
         logger.info {
             "accountUpdateMulti(reqId: $reqId, account: $account, modelCode: $modelCode, key: $key, value: $value," +
-                    " currency: $currency)"
+                " currency: $currency)"
         }
     }
 

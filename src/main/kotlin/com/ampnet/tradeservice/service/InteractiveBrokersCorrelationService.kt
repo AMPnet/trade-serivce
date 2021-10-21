@@ -16,6 +16,7 @@ import com.ib.partial.EOrder
 import com.ib.partial.ETicker
 import com.ib.partial.EUngrouped
 import org.springframework.stereotype.Service
+import java.util.concurrent.atomic.AtomicInteger
 
 @Service
 class InteractiveBrokersCorrelationService(
@@ -33,4 +34,8 @@ class InteractiveBrokersCorrelationService(
     EOrder by orderWrapper,
     ETicker by tickerWrapper,
     EUngrouped by ungroupedWrapper,
-    EWrapper
+    EWrapper {
+    private val requestId = AtomicInteger()
+
+    fun nextRequestId(): Int = requestId.getAndIncrement()
+}
