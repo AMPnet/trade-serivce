@@ -11,7 +11,7 @@ class PollingTaskRepository(private val dslContext: DSLContext) {
     fun getTaskForChainId(chainId: Long): TaskRecord? =
         dslContext.selectFrom(Task.TASK)
             .where(Task.TASK.CHAIN_ID.eq(chainId))
-            .fetchAny()
+            .fetchOne()
 
     fun updateTaskForChainId(chainId: Long, blockNumber: Long, timestamp: Long): Int =
         dslContext.update(Task.TASK)
