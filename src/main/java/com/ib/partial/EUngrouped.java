@@ -7,7 +7,6 @@ import com.ib.client.ContractDescription;
 import com.ib.client.ContractDetails;
 import com.ib.client.DeltaNeutralContract;
 import com.ib.client.DepthMktDataDescription;
-import com.ib.client.Execution;
 import com.ib.client.FamilyCode;
 import com.ib.client.HistogramEntry;
 import com.ib.client.HistoricalTick;
@@ -21,10 +20,6 @@ import java.util.Map;
 import java.util.Set;
 
 public interface EUngrouped {
-
-    void execDetails(int reqId, Contract contract, Execution execution);
-
-    void execDetailsEnd(int reqId);
 
     void updateMktDepth(int tickerId, int position, int operation, int side, double price, int size);
 

@@ -1,6 +1,7 @@
 package com.ib.partial;
 
 import com.ib.client.Contract;
+import com.ib.client.Execution;
 import com.ib.client.Order;
 import com.ib.client.OrderState;
 
@@ -15,6 +16,10 @@ public interface EOrder {
     void openOrder(int orderId, Contract contract, Order order, OrderState orderState);
 
     void openOrderEnd();
+
+    void execDetails(int reqId, Contract contract, Execution execution);
+
+    void execDetailsEnd(int reqId);
 
     void orderBound(long orderId, int apiClientId, int apiOrderId);
 

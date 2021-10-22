@@ -7,7 +7,6 @@ import com.ib.client.ContractDescription
 import com.ib.client.ContractDetails
 import com.ib.client.DeltaNeutralContract
 import com.ib.client.DepthMktDataDescription
-import com.ib.client.Execution
 import com.ib.client.FamilyCode
 import com.ib.client.HistogramEntry
 import com.ib.client.HistoricalTick
@@ -25,14 +24,6 @@ import org.springframework.stereotype.Component
 class LoggingUngroupedWrapper : EUngrouped {
 
     companion object : KLogging()
-
-    override fun execDetails(reqId: Int, contract: Contract?, execution: Execution?) {
-        logger.info { "execDetails(reqId: $reqId, contract: $contract, execution: $execution)" }
-    }
-
-    override fun execDetailsEnd(reqId: Int) {
-        logger.info { "execDetailsEnd(reqId: $reqId)" }
-    }
 
     override fun updateMktDepth(tickerId: Int, position: Int, operation: Int, side: Int, price: Double, size: Int) {
         logger.info {
