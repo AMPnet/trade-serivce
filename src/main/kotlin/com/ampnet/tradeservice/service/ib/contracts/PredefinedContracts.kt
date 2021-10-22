@@ -17,10 +17,15 @@ object PredefinedContracts {
 
     fun Pair<String, Int>.toContract(): Contract {
         val symbol = this.first
-        val id = this.second
+        return this.second.toContract().apply {
+            symbol(symbol)
+        }
+    }
+
+    fun Int.toContract(): Contract {
+        val id = this
         return Contract().apply {
             conid(id)
-            symbol(symbol)
             secType("STK")
             currency("USD")
             exchange("ISLAND")
