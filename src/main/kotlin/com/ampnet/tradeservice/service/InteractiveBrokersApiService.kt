@@ -89,7 +89,7 @@ class InteractiveBrokersApiService(
 
         registerTicker(contract)
 
-        val maxPrice = calcPrice(contract, 0.025)// buy at max. 2.5% higher price
+        val maxPrice = calcPrice(contract, 0.025) // buy at max. 2.5% higher price
         val numShares = floor(buyOrder.amountUsd.toDouble() / maxPrice).toInt()
         logger.info { "Buying $numShares of ${contract.symbol()}" }
 

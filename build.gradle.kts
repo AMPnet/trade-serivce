@@ -166,7 +166,8 @@ tasks.withType<KotlinCompile> {
         freeCompilerArgs = Configurations.Compile.compilerArgs
         jvmTarget = Versions.Compile.jvmTarget
     }
-    dependsOn(tasks["generateJooq"])
+    dependsOn.add(tasks["generateJooq"])
+    dependsOn.add("generateContractWrappers")
 }
 
 tasks.withType<Test> {
