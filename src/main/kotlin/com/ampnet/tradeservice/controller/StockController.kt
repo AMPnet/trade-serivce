@@ -2,7 +2,7 @@ package com.ampnet.tradeservice.controller
 
 import com.ampnet.tradeservice.model.BlockchainOrderId
 import com.ampnet.tradeservice.model.BuyOrder
-import com.ampnet.tradeservice.model.CurrentPrices
+import com.ampnet.tradeservice.model.CurrentPrice
 import com.ampnet.tradeservice.model.SellOrder
 import com.ampnet.tradeservice.model.Stocks
 import com.ampnet.tradeservice.service.InteractiveBrokersApiService
@@ -21,9 +21,9 @@ class StockController(private val apiService: InteractiveBrokersApiService) {
         return apiService.listStocks()
     }
 
-    @GetMapping("/stocks/current-prices")
-    fun listPrices(): CurrentPrices {
-        return apiService.currentPrices()
+    @GetMapping("/stocks/{stockId}/current-price")
+    fun listPrices(@PathVariable stockId: Int): CurrentPrice {
+        return apiService.currentPrice(stockId)
     }
 
     // used to manually test buy orders

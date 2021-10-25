@@ -2,7 +2,6 @@ package com.ampnet.tradeservice.service
 
 import com.ampnet.tradeservice.model.BuyOrder
 import com.ampnet.tradeservice.model.CurrentPrice
-import com.ampnet.tradeservice.model.CurrentPrices
 import com.ampnet.tradeservice.model.InteractiveBrokersOrderId
 import com.ampnet.tradeservice.model.PlacedBuyOrder
 import com.ampnet.tradeservice.model.PlacedSellOrder
@@ -65,23 +64,17 @@ class InteractiveBrokersApiService(
         return Stocks(stocks)
     }
 
-    fun currentPrices(): CurrentPrices {
-        logger.info { "Request prices list" }
-        val contracts = PredefinedContracts.contracts()
+    fun currentPrice(stockId: Int): CurrentPrice {
+        logger.info { "Request price for stockId: $stockId" }
+        val contract = stockId.toContract()
 
-        for (contract in contracts) {
-            registerTicker(contract)
-        }
+        registerTicker(contract)
 
-        val currentPrices = contracts.map {
-            CurrentPrice(
-                stockId = it.conid(),
-                price = tickerWrapper.currentPrice(it.conid(), 5, TimeUnit.SECONDS),
-                priceChange24h = 0.0 // TODO
-            )
-        }
-
-        return CurrentPrices(currentPrices)
+        return CurrentPrice(
+            stockId = contract.conid(),
+            price = tickerWrapper.currentPrice(contract.conid(), 5, TimeUnit.SECONDS),
+            priceChange24h = 0.0 // TODO
+        )
     }
 
     fun placeBuyOrder(buyOrder: BuyOrder): PlacedBuyOrder {

@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.UnaryOperator
 
+@Suppress("TooManyFunctions")
 @Component
 class LoggingOrderWrapper : EOrder {
 
