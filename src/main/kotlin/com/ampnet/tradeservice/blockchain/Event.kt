@@ -1,6 +1,8 @@
 package com.ampnet.tradeservice.blockchain
 
 import com.ampnet.tradeservice.generated.contract.Events
+import com.ampnet.tradeservice.model.BlockchainOrderId
+import java.math.BigDecimal
 import java.math.BigInteger
 
 data class Event(
@@ -8,15 +10,28 @@ data class Event(
     val type: EventType,
     val wallet: String? = null,
     val stockId: String? = null,
-    val amount: BigInteger? = null,
+    val orderId: BlockchainOrderId? = null,
+    val amount: Amount? = null,
     val timestamp: BigInteger? = null
 ) {
     constructor(chainId: Long, event: Events.BuyOrderCreatedEventResponse) : this(
-        chainId, EventType.BUY, event.wallet, event.stockId, event.amount, event.timestamp
+        chainId,
+        EventType.BUY,
+        event.wallet,
+        event.stockId,
+        event.orderId?.let { BlockchainOrderId(it) },
+        event.amount?.let { Amount(it) },
+        event.timestamp
     )
 
     constructor(chainId: Long, event: Events.SellOrderCreatedEventResponse) : this(
-        chainId, EventType.SELL, event.wallet, event.stockId, event.amount, event.timestamp
+        chainId,
+        EventType.SELL,
+        event.wallet,
+        event.stockId,
+        event.orderId?.let { BlockchainOrderId(it) },
+        event.amount?.let { Amount(it) },
+        event.timestamp
     )
 
     constructor(chainId: Long, event: Events.OrderSettledEventResponse) : this(
@@ -26,4 +41,16 @@ data class Event(
 
 enum class EventType {
     BUY, SELL, SETTLE
+}
+
+@JvmInline
+value class Amount(val value: BigInteger) {
+    companion object {
+        val USDC_SCALE = BigDecimal.TEN.pow(6)
+        fun fromUsdcDecimalAmount(amount: BigDecimal) = Amount(amount.multiply(USDC_SCALE).toBigInteger())
+        fun fromSharesAmount(amount: Int) = Amount(amount.toBigInteger())
+    }
+
+    fun toUsdcDecimalAmount() = value.toBigDecimal().div(USDC_SCALE)
+    fun toSharesAmount() = value.toInt()
 }

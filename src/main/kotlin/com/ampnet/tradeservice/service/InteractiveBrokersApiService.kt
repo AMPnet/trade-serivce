@@ -3,6 +3,7 @@ package com.ampnet.tradeservice.service
 import com.ampnet.tradeservice.model.BuyOrder
 import com.ampnet.tradeservice.model.CurrentPrice
 import com.ampnet.tradeservice.model.CurrentPrices
+import com.ampnet.tradeservice.model.InteractiveBrokersOrderId
 import com.ampnet.tradeservice.model.PlacedBuyOrder
 import com.ampnet.tradeservice.model.PlacedSellOrder
 import com.ampnet.tradeservice.model.SellOrder
@@ -100,16 +101,19 @@ class InteractiveBrokersApiService(
             lmtPrice(maxPrice)
         }
         val orderId = orderWrapper.nextOrderId()
-
-        connectionService.client.placeOrder(orderId, contract, order)
-
-        return PlacedBuyOrder(
-            orderId = orderId,
+        val placedOrder = PlacedBuyOrder(
+            interactiveBrokersOrderId = InteractiveBrokersOrderId(orderId),
+            blockchainOrderId = buyOrder.blockchainOrderId,
             stockId = buyOrder.stockId,
             amountUsd = buyOrder.amountUsd,
             maxPrice = maxPrice,
             numShares = numShares
         )
+
+        orderWrapper.queueBuyOrder(placedOrder)
+        connectionService.client.placeOrder(orderId, contract, order)
+
+        return placedOrder
     }
 
     fun placeSellOrder(sellOrder: SellOrder): PlacedSellOrder {
@@ -128,15 +132,18 @@ class InteractiveBrokersApiService(
             lmtPrice(minPrice)
         }
         val orderId = orderWrapper.nextOrderId()
-
-        connectionService.client.placeOrder(orderId, contract, order)
-
-        return PlacedSellOrder(
-            orderId = orderId,
+        val placedOrder = PlacedSellOrder(
+            interactiveBrokersOrderId = InteractiveBrokersOrderId(orderId),
+            blockchainOrderId = sellOrder.blockchainOrderId,
             stockId = sellOrder.stockId,
             minPrice = minPrice,
             numShares = sellOrder.numShares
         )
+
+        orderWrapper.queueSellOrder(placedOrder)
+        connectionService.client.placeOrder(orderId, contract, order)
+
+        return placedOrder
     }
 
     private fun registerTicker(contract: Contract) {

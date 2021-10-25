@@ -36,60 +36,6 @@ class BlockchainService(
     private val gasLimit = BigInteger.valueOf(200_000)
 
     @Throws(InternalException::class)
-    fun mintToken(chainId: Long, stockId: String, tokenAmount: UInt, wallet: String): String? {
-        logger.info {
-            "Minting token: [on chainId=$chainId for stockId=$stockId in tokenAmount=$tokenAmount] to wallet=$wallet]"
-        }
-        val blockchainProperties = chainHandler.getBlockchainProperties(chainId)
-        val nonce = blockchainProperties.web3j
-            .ethGetTransactionCount(blockchainProperties.credentials.address, DefaultBlockParameterName.LATEST)
-            .sendSafely()?.transactionCount ?: return null
-        val gasPrice = getGasPrice(chainId)
-        logger.debug { "Gas price: $gasPrice" }
-
-        val function = Function("mint", listOf(wallet.toAddress(), tokenAmount.toUint()), emptyList())
-        val rawTransaction = RawTransaction.createTransaction(
-            nonce, gasPrice, gasLimit, blockchainProperties.chain.stockAddress, FunctionEncoder.encode(function)
-        )
-
-        val manager = RawTransactionManager(blockchainProperties.web3j, blockchainProperties.credentials, chainId)
-        val sentTransaction = blockchainProperties.web3j
-            .ethSendRawTransaction(manager.sign(rawTransaction)).sendSafely()
-        logger.info {
-            "Successfully send request to mint token: " +
-                "[on chainId=$chainId for stockId=$stockId in tokenAmount=$tokenAmount] to wallet=$wallet]"
-        }
-        return sentTransaction?.transactionHash
-    }
-
-    @Throws(InternalException::class)
-    fun burnToken(chainId: Long, stockId: String, tokenAmount: UInt, wallet: String): String? {
-        logger.info {
-            "Burning token: [on chainId=$chainId for stockId=$stockId in tokenAmount=$tokenAmount to wallet=$wallet]"
-        }
-        val blockchainProperties = chainHandler.getBlockchainProperties(chainId)
-        val nonce = blockchainProperties.web3j
-            .ethGetTransactionCount(blockchainProperties.credentials.address, DefaultBlockParameterName.LATEST)
-            .sendSafely()?.transactionCount ?: return null
-        val gasPrice = getGasPrice(chainId)
-        logger.debug { "Gas price: $gasPrice" }
-
-        val function = Function("burn", listOf(wallet.toAddress(), tokenAmount.toUint()), emptyList())
-        val rawTransaction = RawTransaction.createTransaction(
-            nonce, gasPrice, gasLimit, blockchainProperties.chain.stockAddress, FunctionEncoder.encode(function)
-        )
-
-        val manager = RawTransactionManager(blockchainProperties.web3j, blockchainProperties.credentials, chainId)
-        val sentTransaction = blockchainProperties.web3j
-            .ethSendRawTransaction(manager.sign(rawTransaction)).sendSafely()
-        logger.info {
-            "Successfully send request to burn token: " +
-                "[on chainId=$chainId for stockId=$stockId in tokenAmount=$tokenAmount to wallet=$wallet]"
-        }
-        return sentTransaction?.transactionHash
-    }
-
-    @Throws(InternalException::class)
     fun settle(chainId: Long, orderId: UInt, usdAmount: UInt, tokenAmount: UInt, wallet: String): String? {
         logger.info {
             "Settle: [on chainId=$chainId for orderId=$orderId in usdAmount=$usdAmount " +
