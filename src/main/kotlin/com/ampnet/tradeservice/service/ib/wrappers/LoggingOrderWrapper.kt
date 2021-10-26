@@ -45,59 +45,60 @@ class LoggingOrderWrapper(private val blockchainService: BlockchainService) : EO
                         OrderStatus.PREPARED, OrderStatus.PENDING -> OrderStatus.PENDING
                         OrderStatus.FAILED -> {
                             logger.info { "Order failed!" }
-                            blockchainService.settle(
-                                chainId = placedOrder.chainId,
-                                orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
-                                usdAmount = 0u,
-                                tokenAmount = 0u,
-                                wallet = placedOrder.wallet
-                            )
+                            refundOrder(placedOrder)
                             OrderStatus.FAILED
                         }
                         OrderStatus.SUCCESSFUL -> {
                             logger.info { "Order successful" }
+
                             when (placedOrder) {
-                                is PlacedBuyOrder -> {
-                                    val amountPaid = placedOrder.numShares * averageFillPrice
-                                    val roundedAmountPaid = (ceil(amountPaid * 100).toLong() / 100.0).toBigDecimal()
-                                    val amountToReturn = placedOrder.amountUsd - roundedAmountPaid
-
-                                    blockchainService.settle(
-                                        chainId = placedOrder.chainId,
-                                        orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
-                                        usdAmount = Amount.fromUsdcDecimalAmount(amountToReturn).value.toInt().toUInt(),
-                                        tokenAmount = placedOrder.numShares.toUInt(),
-                                        wallet = placedOrder.wallet
-                                    )
-                                }
-
-                                is PlacedSellOrder -> {
-                                    val amountReceived = placedOrder.numShares * averageFillPrice
-                                    val roundedAmountReceived =
-                                        (ceil(amountReceived * 100).toLong() / 100.0).toBigDecimal()
-
-                                    blockchainService.settle(
-                                        chainId = placedOrder.chainId,
-                                        orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
-                                        usdAmount = Amount.fromUsdcDecimalAmount(roundedAmountReceived).value.toInt()
-                                            .toUInt(),
-                                        tokenAmount = 0u,
-                                        wallet = placedOrder.wallet
-                                    )
-                                }
+                                is PlacedBuyOrder -> settleBuyOrder(placedOrder, averageFillPrice)
+                                is PlacedSellOrder -> settleSellOrder(placedOrder, averageFillPrice)
                             }
-                            blockchainService.settle(
-                                chainId = placedOrder.chainId,
-                                orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
-                                usdAmount = 0u,
-                                tokenAmount = 0u,
-                                wallet = placedOrder.wallet
-                            )
+
                             OrderStatus.SUCCESSFUL
                         }
                     }
             }
         }
+    }
+
+    private fun refundOrder(placedOrder: PlacedOrder) {
+        blockchainService.settle(
+            chainId = placedOrder.chainId,
+            orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
+            usdAmount = 0u,
+            tokenAmount = 0u,
+            wallet = placedOrder.wallet
+        )
+    }
+
+    @Suppress("MagicNumber")
+    private fun settleBuyOrder(placedOrder: PlacedBuyOrder, averageFillPrice: Double) {
+        val amountPaid = placedOrder.numShares * averageFillPrice
+        val roundedAmountPaid = (ceil(amountPaid * 100).toLong() / 100.0).toBigDecimal()
+
+        blockchainService.settle(
+            chainId = placedOrder.chainId,
+            orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
+            usdAmount = Amount.fromUsdcDecimalAmount(roundedAmountPaid).value.toInt().toUInt(),
+            tokenAmount = placedOrder.numShares.toUInt(),
+            wallet = placedOrder.wallet
+        )
+    }
+
+    @Suppress("MagicNumber")
+    private fun settleSellOrder(placedOrder: PlacedSellOrder, averageFillPrice: Double) {
+        val amountReceived = placedOrder.numShares * averageFillPrice
+        val roundedAmountReceived = (ceil(amountReceived * 100).toLong() / 100.0).toBigDecimal()
+
+        blockchainService.settle(
+            chainId = placedOrder.chainId,
+            orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
+            usdAmount = Amount.fromUsdcDecimalAmount(roundedAmountReceived).value.toInt().toUInt(),
+            tokenAmount = 0u,
+            wallet = placedOrder.wallet
+        )
     }
 
     fun nextOrderId() = nextOrderId.getAndIncrement()
