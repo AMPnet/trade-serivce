@@ -1,5 +1,7 @@
 package com.ampnet.tradeservice.service.ib.wrappers
 
+import com.ampnet.tradeservice.blockchain.Amount
+import com.ampnet.tradeservice.blockchain.BlockchainService
 import com.ampnet.tradeservice.model.OrderStatus
 import com.ampnet.tradeservice.model.PlacedBuyOrder
 import com.ampnet.tradeservice.model.PlacedOrder
@@ -18,10 +20,11 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.UnaryOperator
+import kotlin.math.ceil
 
 @Suppress("TooManyFunctions")
 @Component
-class LoggingOrderWrapper : EOrder {
+class LoggingOrderWrapper(private val blockchainService: BlockchainService) : EOrder {
 
     companion object : KLogging()
 
@@ -30,6 +33,7 @@ class LoggingOrderWrapper : EOrder {
 
     private fun orderStatusTransitions(
         placedOrder: PlacedOrder,
+        averageFillPrice: Double,
         targetStatus: OrderStatus
     ): UnaryOperator<OrderStatus> {
         return UnaryOperator { oldStatus ->
@@ -41,12 +45,54 @@ class LoggingOrderWrapper : EOrder {
                         OrderStatus.PREPARED, OrderStatus.PENDING -> OrderStatus.PENDING
                         OrderStatus.FAILED -> {
                             logger.info { "Order failed!" }
-                            // TODO refund USDC/share tokens to user
+                            blockchainService.settle(
+                                chainId = placedOrder.chainId,
+                                orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
+                                usdAmount = 0u,
+                                tokenAmount = 0u,
+                                wallet = placedOrder.wallet
+                            )
                             OrderStatus.FAILED
                         }
                         OrderStatus.SUCCESSFUL -> {
                             logger.info { "Order successful" }
-                            // TODO settle transaction
+                            when (placedOrder) {
+                                is PlacedBuyOrder -> {
+                                    val amountPaid = placedOrder.numShares * averageFillPrice
+                                    val roundedAmountPaid = (ceil(amountPaid * 100).toLong() / 100.0).toBigDecimal()
+                                    val amountToReturn = placedOrder.amountUsd - roundedAmountPaid
+
+                                    blockchainService.settle(
+                                        chainId = placedOrder.chainId,
+                                        orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
+                                        usdAmount = Amount.fromUsdcDecimalAmount(amountToReturn).value.toInt().toUInt(),
+                                        tokenAmount = placedOrder.numShares.toUInt(),
+                                        wallet = placedOrder.wallet
+                                    )
+                                }
+
+                                is PlacedSellOrder -> {
+                                    val amountReceived = placedOrder.numShares * averageFillPrice
+                                    val roundedAmountReceived =
+                                        (ceil(amountReceived * 100).toLong() / 100.0).toBigDecimal()
+
+                                    blockchainService.settle(
+                                        chainId = placedOrder.chainId,
+                                        orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
+                                        usdAmount = Amount.fromUsdcDecimalAmount(roundedAmountReceived).value.toInt()
+                                            .toUInt(),
+                                        tokenAmount = 0u,
+                                        wallet = placedOrder.wallet
+                                    )
+                                }
+                            }
+                            blockchainService.settle(
+                                chainId = placedOrder.chainId,
+                                orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
+                                usdAmount = 0u,
+                                tokenAmount = 0u,
+                                wallet = placedOrder.wallet
+                            )
                             OrderStatus.SUCCESSFUL
                         }
                     }
@@ -88,19 +134,19 @@ class LoggingOrderWrapper : EOrder {
         when (status) {
             "PendingSubmit", "PendingCancel", "PreSubmitted", "Submitted" ->
                 queuedOrders[orderId]?.let {
-                    it.status.updateAndGet(orderStatusTransitions(it.order, OrderStatus.PENDING))
+                    it.status.updateAndGet(orderStatusTransitions(it.order, avgFillPrice, OrderStatus.PENDING))
                 }
             "ApiCancelled", "Cancelled", "Inactive" ->
                 queuedOrders[orderId]?.let {
-                    it.status.updateAndGet(orderStatusTransitions(it.order, OrderStatus.FAILED))
+                    it.status.updateAndGet(orderStatusTransitions(it.order, avgFillPrice, OrderStatus.FAILED))
                 }
             "Filled" ->
                 queuedOrders[orderId]?.let {
-                    it.status.updateAndGet(orderStatusTransitions(it.order, OrderStatus.SUCCESSFUL))
+                    it.status.updateAndGet(orderStatusTransitions(it.order, avgFillPrice, OrderStatus.SUCCESSFUL))
                 }
             else ->
                 queuedOrders[orderId]?.let {
-                    it.status.updateAndGet(orderStatusTransitions(it.order, OrderStatus.FAILED))
+                    it.status.updateAndGet(orderStatusTransitions(it.order, avgFillPrice, OrderStatus.FAILED))
                 }
         }
     }
@@ -110,20 +156,14 @@ class LoggingOrderWrapper : EOrder {
         when (orderState?.status) {
             "PendingSubmit", "PendingCancel", "PreSubmitted", "Submitted" ->
                 queuedOrders[orderId]?.let {
-                    it.status.updateAndGet(orderStatusTransitions(it.order, OrderStatus.PENDING))
+                    it.status.updateAndGet(orderStatusTransitions(it.order, 0.0, OrderStatus.PENDING))
                 }
             "ApiCancelled", "Cancelled", "Inactive" ->
                 queuedOrders[orderId]?.let {
-                    it.status.updateAndGet(orderStatusTransitions(it.order, OrderStatus.FAILED))
+                    it.status.updateAndGet(orderStatusTransitions(it.order, 0.0, OrderStatus.FAILED))
                 }
-            "Filled" ->
-                queuedOrders[orderId]?.let {
-                    it.status.updateAndGet(orderStatusTransitions(it.order, OrderStatus.SUCCESSFUL))
-                }
-            else ->
-                queuedOrders[orderId]?.let {
-                    it.status.updateAndGet(orderStatusTransitions(it.order, OrderStatus.FAILED))
-                }
+            else -> {
+            }
         }
     }
 

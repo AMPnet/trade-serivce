@@ -50,27 +50,31 @@ class QueueService(
 //                logger.debug { "End block: $endBlockNumber is smaller than start block: $startBlockNumber" }
                 return
             }
-            val events = blockchainEventService.getAllEvents(startBlockNumber, endBlockNumber, chain.id).forEach {
+            blockchainEventService.getAllEvents(startBlockNumber, endBlockNumber, chain.id).forEach {
                 when (it.type) {
                     EventType.BUY -> {
                         val buyOrder = BuyOrder(
                             stockId = it.stockId?.toInt()!!,
                             blockchainOrderId = it.orderId!!,
+                            chainId = it.chainId,
+                            wallet = it.wallet!!,
                             amountUsd = it.amount?.toUsdcDecimalAmount()!!
                         )
                         interactiveBrokersApiService.placeBuyOrder(buyOrder)
-                        // TODO order has been placed above, do we need to do anything else here?
+                        logger.info { "Buy order placed for event: $it" }
                     }
                     EventType.SELL -> {
                         val sellOrder = SellOrder(
                             stockId = it.stockId?.toInt()!!,
                             blockchainOrderId = it.orderId!!,
+                            chainId = it.chainId,
+                            wallet = it.wallet!!,
                             numShares = it.amount?.toSharesAmount()!!
                         )
                         interactiveBrokersApiService.placeSellOrder(sellOrder)
-                        // TODO order has been placed above, do we need to do anything else here?
+                        logger.info { "Sell order placed for event: $it" }
                     }
-                    EventType.SETTLE -> TODO("settle is completed, do something")
+                    EventType.SETTLE -> logger.info { "Got settle event: $it" }
                 }
             }
             taskRepository.updateTaskForChainId(chain.id, endBlockNumber, Instant.now().toEpochMilli())

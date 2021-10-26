@@ -13,20 +13,30 @@ value class BlockchainOrderId(val value: BigInteger)
 data class BuyOrder(
     val stockId: Int,
     val blockchainOrderId: BlockchainOrderId,
+    val chainId: Long,
+    val wallet: String,
     val amountUsd: BigDecimal
 )
 
 data class SellOrder(
     val stockId: Int,
     val blockchainOrderId: BlockchainOrderId,
+    val chainId: Long,
+    val wallet: String,
     val numShares: Int
 )
 
-sealed interface PlacedOrder
+sealed interface PlacedOrder {
+    val blockchainOrderId: BlockchainOrderId
+    val chainId: Long
+    val wallet: String
+}
 
 data class PlacedBuyOrder(
     val interactiveBrokersOrderId: InteractiveBrokersOrderId,
-    val blockchainOrderId: BlockchainOrderId,
+    override val blockchainOrderId: BlockchainOrderId,
+    override val chainId: Long,
+    override val wallet: String,
     val stockId: Int,
     val amountUsd: BigDecimal,
     val maxPrice: Double,
@@ -35,7 +45,9 @@ data class PlacedBuyOrder(
 
 data class PlacedSellOrder(
     val interactiveBrokersOrderId: InteractiveBrokersOrderId,
-    val blockchainOrderId: BlockchainOrderId,
+    override val blockchainOrderId: BlockchainOrderId,
+    override val chainId: Long,
+    override val wallet: String,
     val stockId: Int,
     val minPrice: Double,
     val numShares: Int

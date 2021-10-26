@@ -103,6 +103,8 @@ class InteractiveBrokersApiService(
         val placedOrder = PlacedBuyOrder(
             interactiveBrokersOrderId = InteractiveBrokersOrderId(orderId),
             blockchainOrderId = buyOrder.blockchainOrderId,
+            chainId = buyOrder.chainId,
+            wallet = buyOrder.wallet,
             stockId = buyOrder.stockId,
             amountUsd = buyOrder.amountUsd,
             maxPrice = maxPrice,
@@ -134,6 +136,8 @@ class InteractiveBrokersApiService(
         val placedOrder = PlacedSellOrder(
             interactiveBrokersOrderId = InteractiveBrokersOrderId(orderId),
             blockchainOrderId = sellOrder.blockchainOrderId,
+            chainId = sellOrder.chainId,
+            wallet = sellOrder.wallet,
             stockId = sellOrder.stockId,
             minPrice = minPrice,
             numShares = sellOrder.numShares
