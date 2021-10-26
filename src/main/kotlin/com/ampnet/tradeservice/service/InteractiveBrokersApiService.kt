@@ -9,6 +9,7 @@ import com.ampnet.tradeservice.model.SellOrder
 import com.ampnet.tradeservice.model.Stock
 import com.ampnet.tradeservice.model.Stocks
 import com.ampnet.tradeservice.service.ib.contracts.PredefinedContracts
+import com.ampnet.tradeservice.service.ib.contracts.PredefinedContracts.historicalData
 import com.ampnet.tradeservice.service.ib.contracts.PredefinedContracts.toContract
 import com.ampnet.tradeservice.service.ib.wrappers.LoggingContractWrapper
 import com.ampnet.tradeservice.service.ib.wrappers.LoggingOrderWrapper
@@ -52,12 +53,14 @@ class InteractiveBrokersApiService(
         }
 
         val stocks = retrievedContractsDetails.map {
+            val price = tickerWrapper.currentPrice(it.conid(), 5, TimeUnit.SECONDS)
+            val change = historicalData[it.conid()]?.let { oldPrice -> price / oldPrice - 1 }
             Stock(
                 id = it.conid(),
                 name = it.longName(),
                 symbol = it.contract().symbol(),
-                price = tickerWrapper.currentPrice(it.conid(), 5, TimeUnit.SECONDS),
-                priceChange24h = 0.0 // TODO set price
+                price = price,
+                priceChange24h = change ?: 0.0
             )
         }
 
@@ -70,10 +73,13 @@ class InteractiveBrokersApiService(
 
         registerTicker(contract)
 
+        val price = tickerWrapper.currentPrice(contract.conid(), 5, TimeUnit.SECONDS)
+        val change = historicalData[contract.conid()]?.let { oldPrice -> price / oldPrice - 1 }
+
         return CurrentPrice(
             stockId = contract.conid(),
-            price = tickerWrapper.currentPrice(contract.conid(), 5, TimeUnit.SECONDS),
-            priceChange24h = 0.0 // TODO
+            price = price,
+            priceChange24h = change ?: 0.0
         )
     }
 
