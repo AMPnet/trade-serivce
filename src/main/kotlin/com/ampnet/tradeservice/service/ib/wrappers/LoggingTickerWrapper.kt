@@ -3,6 +3,7 @@ package com.ampnet.tradeservice.service.ib.wrappers
 import com.ib.client.TickAttrib
 import com.ib.client.TickAttribBidAsk
 import com.ib.client.TickAttribLast
+import com.ib.client.TickType
 import com.ib.controller.ConcurrentHashSet
 import com.ib.partial.ETicker
 import mu.KLogging
@@ -22,12 +23,14 @@ class LoggingTickerWrapper : ETicker {
     private val initialStockPrices = ConcurrentHashMap<Int, CompletableFuture<Double>>()
 
     fun registerTicker(tickerId: Int): Boolean {
-        logger.info { "Register ticker with id: $tickerId" }
         val tickerAdded = registeredTickers.add(tickerId)
 
         if (tickerAdded) {
+            logger.info { "Register ticker with id: $tickerId" }
             val future = CompletableFuture<Double>()
             initialStockPrices[tickerId] = future
+        } else {
+            logger.info { "Ticker already exists for id: $tickerId" }
         }
 
         return tickerAdded
@@ -38,11 +41,17 @@ class LoggingTickerWrapper : ETicker {
     }
 
     override fun tickPrice(tickerId: Int, field: Int, price: Double, attrib: TickAttrib?) {
-        logger.info { "tickPrice(tickerId: $tickerId, field: $field, price: $price, attrib: $attrib)" }
-        if (currentStockPrices[tickerId] == null) {
-            initialStockPrices[tickerId]?.complete(price)
+        if (
+            field == TickType.DELAYED_BID.index() ||
+            field == TickType.DELAYED_ASK.index() ||
+            field == TickType.DELAYED_LAST.index()
+        ) {
+            logger.info { "tickPrice(tickerId: $tickerId, field: $field, price: $price, attrib: $attrib)" }
+            if (currentStockPrices[tickerId] == null) {
+                initialStockPrices[tickerId]?.complete(price)
+            }
+            currentStockPrices[tickerId] = price
         }
-        currentStockPrices[tickerId] = price
     }
 
     override fun tickSize(tickerId: Int, field: Int, size: Int) {

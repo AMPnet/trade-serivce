@@ -5,7 +5,3 @@ data class CurrentPrice(
     val price: Double,
     val priceChange24h: Double
 )
-
-data class CurrentPrices(
-    val prices: List<CurrentPrice>
-)

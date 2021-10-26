@@ -1,5 +1,14 @@
 package com.ampnet.tradeservice.service.ib.wrappers
 
+import com.ampnet.tradeservice.blockchain.Amount
+import com.ampnet.tradeservice.blockchain.BlockchainService
+import com.ampnet.tradeservice.model.OrderStatus
+import com.ampnet.tradeservice.model.PlacedBuyOrder
+import com.ampnet.tradeservice.model.PlacedOrder
+import com.ampnet.tradeservice.model.PlacedSellOrder
+import com.ampnet.tradeservice.model.QueuedBuyOrder
+import com.ampnet.tradeservice.model.QueuedOrder
+import com.ampnet.tradeservice.model.QueuedSellOrder
 import com.ib.client.Contract
 import com.ib.client.Execution
 import com.ib.client.Order
@@ -7,16 +16,102 @@ import com.ib.client.OrderState
 import com.ib.partial.EOrder
 import mu.KLogging
 import org.springframework.stereotype.Component
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
+import java.util.function.UnaryOperator
+import kotlin.math.ceil
 
+@Suppress("TooManyFunctions")
 @Component
-class LoggingOrderWrapper : EOrder {
+class LoggingOrderWrapper(private val blockchainService: BlockchainService) : EOrder {
 
     companion object : KLogging()
 
     private val nextOrderId = AtomicInteger()
+    private val queuedOrders = ConcurrentHashMap<Int, QueuedOrder>()
+
+    private fun orderStatusTransitions(
+        placedOrder: PlacedOrder,
+        averageFillPrice: Double,
+        targetStatus: OrderStatus
+    ): UnaryOperator<OrderStatus> {
+        return UnaryOperator { oldStatus ->
+            when (oldStatus) {
+                OrderStatus.FAILED, OrderStatus.SUCCESSFUL -> oldStatus // do nothing for completed orders
+                OrderStatus.PREPARED, OrderStatus.PENDING ->
+                    when (targetStatus) {
+                        // do not allow transition back to prepared status
+                        OrderStatus.PREPARED, OrderStatus.PENDING -> OrderStatus.PENDING
+                        OrderStatus.FAILED -> {
+                            logger.info { "Order failed!" }
+                            refundOrder(placedOrder)
+                            OrderStatus.FAILED
+                        }
+                        OrderStatus.SUCCESSFUL -> {
+                            logger.info { "Order successful" }
+
+                            when (placedOrder) {
+                                is PlacedBuyOrder -> settleBuyOrder(placedOrder, averageFillPrice)
+                                is PlacedSellOrder -> settleSellOrder(placedOrder, averageFillPrice)
+                            }
+
+                            OrderStatus.SUCCESSFUL
+                        }
+                    }
+            }
+        }
+    }
+
+    private fun refundOrder(placedOrder: PlacedOrder) {
+        blockchainService.settle(
+            chainId = placedOrder.chainId,
+            orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
+            usdAmount = 0u,
+            tokenAmount = 0u,
+            wallet = placedOrder.wallet
+        )
+    }
+
+    @Suppress("MagicNumber")
+    private fun settleBuyOrder(placedOrder: PlacedBuyOrder, averageFillPrice: Double) {
+        val amountPaid = placedOrder.numShares * averageFillPrice
+        val roundedAmountPaid = (ceil(amountPaid * 100).toLong() / 100.0).toBigDecimal()
+
+        blockchainService.settle(
+            chainId = placedOrder.chainId,
+            orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
+            usdAmount = Amount.fromUsdcDecimalAmount(roundedAmountPaid).value.toInt().toUInt(),
+            tokenAmount = placedOrder.numShares.toUInt(),
+            wallet = placedOrder.wallet
+        )
+    }
+
+    @Suppress("MagicNumber")
+    private fun settleSellOrder(placedOrder: PlacedSellOrder, averageFillPrice: Double) {
+        val amountReceived = placedOrder.numShares * averageFillPrice
+        val roundedAmountReceived = (ceil(amountReceived * 100).toLong() / 100.0).toBigDecimal()
+
+        blockchainService.settle(
+            chainId = placedOrder.chainId,
+            orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
+            usdAmount = Amount.fromUsdcDecimalAmount(roundedAmountReceived).value.toInt().toUInt(),
+            tokenAmount = placedOrder.numShares.toUInt(),
+            wallet = placedOrder.wallet
+        )
+    }
 
     fun nextOrderId() = nextOrderId.getAndIncrement()
+
+    fun queueBuyOrder(order: PlacedBuyOrder) {
+        queuedOrders[order.interactiveBrokersOrderId.value] =
+            QueuedBuyOrder(AtomicReference(OrderStatus.PREPARED), order)
+    }
+
+    fun queueSellOrder(order: PlacedSellOrder) {
+        queuedOrders[order.interactiveBrokersOrderId.value] =
+            QueuedSellOrder(AtomicReference(OrderStatus.PREPARED), order)
+    }
 
     override fun nextValidId(orderId: Int) {
         logger.info { "nextValidId(orderId: $orderId)" }
@@ -36,17 +131,41 @@ class LoggingOrderWrapper : EOrder {
         whyHeld: String?,
         mktCapPrice: Double
     ) {
-        // TODO for db insert/update
-        logger.info {
-            "orderStatus(orderId: $orderId, status: $status, filled: $filled, remaining: $remaining," +
-                " avgFillPrice: $avgFillPrice, permId: $permId, parentId: $parentId," +
-                " lastFillPrice: $lastFillPrice, clientId: $clientId, whyHeld: $whyHeld, mktCapPrice: $mktCapPrice)"
+        logger.info { "Got order status: $status (order id = $orderId)" }
+        when (status) {
+            "PendingSubmit", "PendingCancel", "PreSubmitted", "Submitted" ->
+                queuedOrders[orderId]?.let {
+                    it.status.updateAndGet(orderStatusTransitions(it.order, avgFillPrice, OrderStatus.PENDING))
+                }
+            "ApiCancelled", "Cancelled", "Inactive" ->
+                queuedOrders[orderId]?.let {
+                    it.status.updateAndGet(orderStatusTransitions(it.order, avgFillPrice, OrderStatus.FAILED))
+                }
+            "Filled" ->
+                queuedOrders[orderId]?.let {
+                    it.status.updateAndGet(orderStatusTransitions(it.order, avgFillPrice, OrderStatus.SUCCESSFUL))
+                }
+            else ->
+                queuedOrders[orderId]?.let {
+                    it.status.updateAndGet(orderStatusTransitions(it.order, avgFillPrice, OrderStatus.FAILED))
+                }
         }
     }
 
     override fun openOrder(orderId: Int, contract: Contract?, order: Order?, orderState: OrderState?) {
-        // TODO callback for db insert/update
-        logger.info { "openOrder(orderId: $orderId, contract: $contract, order: $order, orderState: $orderState)" }
+        logger.info { "Open order, status: ${orderState?.status} (order id = $orderId)" }
+        when (orderState?.status) {
+            "PendingSubmit", "PendingCancel", "PreSubmitted", "Submitted" ->
+                queuedOrders[orderId]?.let {
+                    it.status.updateAndGet(orderStatusTransitions(it.order, 0.0, OrderStatus.PENDING))
+                }
+            "ApiCancelled", "Cancelled", "Inactive" ->
+                queuedOrders[orderId]?.let {
+                    it.status.updateAndGet(orderStatusTransitions(it.order, 0.0, OrderStatus.FAILED))
+                }
+            else -> {
+            }
+        }
     }
 
     override fun openOrderEnd() {
@@ -54,7 +173,6 @@ class LoggingOrderWrapper : EOrder {
     }
 
     override fun execDetails(reqId: Int, contract: Contract?, execution: Execution?) {
-        // TODO callback for db/insert/update (order has been filled)
         logger.info { "execDetails(reqId: $reqId, contract: $contract, execution: $execution)" }
     }
 

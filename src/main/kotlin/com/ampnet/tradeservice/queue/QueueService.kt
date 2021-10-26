@@ -6,7 +6,10 @@ import com.ampnet.tradeservice.blockchain.EventType
 import com.ampnet.tradeservice.blockchain.properties.Chain
 import com.ampnet.tradeservice.blockchain.properties.ChainPropertiesHandler
 import com.ampnet.tradeservice.configuration.ChainProperties
+import com.ampnet.tradeservice.model.BuyOrder
+import com.ampnet.tradeservice.model.SellOrder
 import com.ampnet.tradeservice.repository.PollingTaskRepository
+import com.ampnet.tradeservice.service.InteractiveBrokersApiService
 import mu.KotlinLogging
 import org.jobrunr.scheduling.BackgroundJob
 import org.springframework.stereotype.Service
@@ -19,7 +22,8 @@ class QueueService(
     chainPropertiesHandler: ChainPropertiesHandler,
     private val blockchainService: BlockchainService,
     private val blockchainEventService: BlockchainEventService,
-    private val taskRepository: PollingTaskRepository
+    private val taskRepository: PollingTaskRepository,
+    private val interactiveBrokersApiService: InteractiveBrokersApiService
 ) {
     init {
         val activeChains = Chain.values().mapNotNull { chain ->
@@ -46,11 +50,31 @@ class QueueService(
 //                logger.debug { "End block: $endBlockNumber is smaller than start block: $startBlockNumber" }
                 return
             }
-            val events = blockchainEventService.getAllEvents(startBlockNumber, endBlockNumber, chain.id).forEach {
+            blockchainEventService.getAllEvents(startBlockNumber, endBlockNumber, chain.id).forEach {
                 when (it.type) {
-                    EventType.BUY -> TODO("create buy stock task")
-                    EventType.SELL -> TODO("call sell stock task")
-                    EventType.SETTLE -> TODO("settle is completed, do something")
+                    EventType.BUY -> {
+                        val buyOrder = BuyOrder(
+                            stockId = it.stockId?.toInt()!!,
+                            blockchainOrderId = it.orderId!!,
+                            chainId = it.chainId,
+                            wallet = it.wallet!!,
+                            amountUsd = it.amount?.toUsdcDecimalAmount()!!
+                        )
+                        interactiveBrokersApiService.placeBuyOrder(buyOrder)
+                        logger.info { "Buy order placed for event: $it" }
+                    }
+                    EventType.SELL -> {
+                        val sellOrder = SellOrder(
+                            stockId = it.stockId?.toInt()!!,
+                            blockchainOrderId = it.orderId!!,
+                            chainId = it.chainId,
+                            wallet = it.wallet!!,
+                            numShares = it.amount?.toSharesAmount()!!
+                        )
+                        interactiveBrokersApiService.placeSellOrder(sellOrder)
+                        logger.info { "Sell order placed for event: $it" }
+                    }
+                    EventType.SETTLE -> logger.info { "Got settle event: $it" }
                 }
             }
             taskRepository.updateTaskForChainId(chain.id, endBlockNumber, Instant.now().toEpochMilli())

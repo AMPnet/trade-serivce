@@ -2,13 +2,14 @@ package com.ampnet.tradeservice.service
 
 import com.ampnet.tradeservice.model.BuyOrder
 import com.ampnet.tradeservice.model.CurrentPrice
-import com.ampnet.tradeservice.model.CurrentPrices
+import com.ampnet.tradeservice.model.InteractiveBrokersOrderId
 import com.ampnet.tradeservice.model.PlacedBuyOrder
 import com.ampnet.tradeservice.model.PlacedSellOrder
 import com.ampnet.tradeservice.model.SellOrder
 import com.ampnet.tradeservice.model.Stock
 import com.ampnet.tradeservice.model.Stocks
 import com.ampnet.tradeservice.service.ib.contracts.PredefinedContracts
+import com.ampnet.tradeservice.service.ib.contracts.PredefinedContracts.historicalData
 import com.ampnet.tradeservice.service.ib.contracts.PredefinedContracts.toContract
 import com.ampnet.tradeservice.service.ib.wrappers.LoggingContractWrapper
 import com.ampnet.tradeservice.service.ib.wrappers.LoggingOrderWrapper
@@ -52,35 +53,34 @@ class InteractiveBrokersApiService(
         }
 
         val stocks = retrievedContractsDetails.map {
+            val price = tickerWrapper.currentPrice(it.conid(), 5, TimeUnit.SECONDS)
+            val change = historicalData[it.conid()]?.let { oldPrice -> price / oldPrice - 1 }
             Stock(
                 id = it.conid(),
                 name = it.longName(),
                 symbol = it.contract().symbol(),
-                price = tickerWrapper.currentPrice(it.conid(), 5, TimeUnit.SECONDS),
-                priceChange24h = 0.0 // TODO set price
+                price = price,
+                priceChange24h = change ?: 0.0
             )
         }
 
         return Stocks(stocks)
     }
 
-    fun currentPrices(): CurrentPrices {
-        logger.info { "Request prices list" }
-        val contracts = PredefinedContracts.contracts()
+    fun currentPrice(stockId: Int): CurrentPrice {
+        logger.info { "Request price for stockId: $stockId" }
+        val contract = stockId.toContract()
 
-        for (contract in contracts) {
-            registerTicker(contract)
-        }
+        registerTicker(contract)
 
-        val currentPrices = contracts.map {
-            CurrentPrice(
-                stockId = it.conid(),
-                price = tickerWrapper.currentPrice(it.conid(), 5, TimeUnit.SECONDS),
-                priceChange24h = 0.0 // TODO
-            )
-        }
+        val price = tickerWrapper.currentPrice(contract.conid(), 5, TimeUnit.SECONDS)
+        val change = historicalData[contract.conid()]?.let { oldPrice -> price / oldPrice - 1 }
 
-        return CurrentPrices(currentPrices)
+        return CurrentPrice(
+            stockId = contract.conid(),
+            price = price,
+            priceChange24h = change ?: 0.0
+        )
     }
 
     fun placeBuyOrder(buyOrder: BuyOrder): PlacedBuyOrder {
@@ -89,7 +89,7 @@ class InteractiveBrokersApiService(
 
         registerTicker(contract)
 
-        val maxPrice = calcPrice(contract, 0.025)// buy at max. 2.5% higher price
+        val maxPrice = calcPrice(contract, 0.025) // buy at max. 2.5% higher price
         val numShares = floor(buyOrder.amountUsd.toDouble() / maxPrice).toInt()
         logger.info { "Buying $numShares of ${contract.symbol()}" }
 
@@ -100,16 +100,21 @@ class InteractiveBrokersApiService(
             lmtPrice(maxPrice)
         }
         val orderId = orderWrapper.nextOrderId()
-
-        connectionService.client.placeOrder(orderId, contract, order)
-
-        return PlacedBuyOrder(
-            orderId = orderId,
+        val placedOrder = PlacedBuyOrder(
+            interactiveBrokersOrderId = InteractiveBrokersOrderId(orderId),
+            blockchainOrderId = buyOrder.blockchainOrderId,
+            chainId = buyOrder.chainId,
+            wallet = buyOrder.wallet,
             stockId = buyOrder.stockId,
             amountUsd = buyOrder.amountUsd,
             maxPrice = maxPrice,
             numShares = numShares
         )
+
+        orderWrapper.queueBuyOrder(placedOrder)
+        connectionService.client.placeOrder(orderId, contract, order)
+
+        return placedOrder
     }
 
     fun placeSellOrder(sellOrder: SellOrder): PlacedSellOrder {
@@ -128,15 +133,20 @@ class InteractiveBrokersApiService(
             lmtPrice(minPrice)
         }
         val orderId = orderWrapper.nextOrderId()
-
-        connectionService.client.placeOrder(orderId, contract, order)
-
-        return PlacedSellOrder(
-            orderId = orderId,
+        val placedOrder = PlacedSellOrder(
+            interactiveBrokersOrderId = InteractiveBrokersOrderId(orderId),
+            blockchainOrderId = sellOrder.blockchainOrderId,
+            chainId = sellOrder.chainId,
+            wallet = sellOrder.wallet,
             stockId = sellOrder.stockId,
             minPrice = minPrice,
             numShares = sellOrder.numShares
         )
+
+        orderWrapper.queueSellOrder(placedOrder)
+        connectionService.client.placeOrder(orderId, contract, order)
+
+        return placedOrder
     }
 
     private fun registerTicker(contract: Contract) {
