@@ -96,7 +96,7 @@ class LoggingOrderWrapper(private val blockchainService: BlockchainService) : EO
             chainId = placedOrder.chainId,
             orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
             usdAmount = Amount.fromUsdcDecimalAmount(roundedAmountReceived).value.toInt().toUInt(),
-            tokenAmount = 0u,
+            tokenAmount = placedOrder.numShares.toUInt(),
             wallet = placedOrder.wallet
         )
     }

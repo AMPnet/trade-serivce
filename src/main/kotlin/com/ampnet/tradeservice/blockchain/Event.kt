@@ -46,7 +46,7 @@ enum class EventType {
 @JvmInline
 value class Amount(val value: BigInteger) {
     companion object {
-        val USDC_SCALE = BigDecimal.TEN.pow(6)
+        val USDC_SCALE = BigDecimal.TEN.pow(18)
         fun fromUsdcDecimalAmount(amount: BigDecimal) = Amount(amount.multiply(USDC_SCALE).toBigInteger())
         fun fromSharesAmount(amount: Int) = Amount(amount.toBigInteger())
     }
