@@ -1,7 +1,6 @@
 package com.ampnet.tradeservice.service
 
 import com.ampnet.tradeservice.model.BuyOrder
-import com.ampnet.tradeservice.model.CurrentPrice
 import com.ampnet.tradeservice.model.InteractiveBrokersOrderId
 import com.ampnet.tradeservice.model.PlacedBuyOrder
 import com.ampnet.tradeservice.model.PlacedSellOrder
@@ -67,17 +66,26 @@ class InteractiveBrokersApiService(
         return Stocks(stocks)
     }
 
-    fun currentPrice(stockId: Int): CurrentPrice {
-        logger.info { "Request price for stockId: $stockId" }
+    fun listStock(stockId: Int): Stock {
+        logger.info { "Request stock by id: $stockId" }
         val contract = stockId.toContract()
+        val requestId = correlationService.nextRequestId()
+        val future = contractWrapper.registerRequest(requestId)
 
-        registerTicker(contract)
+        connectionService.client.reqContractDetails(requestId, contract)
+
+        logger.info { "Block on id: $requestId" }
+        val contractDetails = future.get(5, TimeUnit.SECONDS)
+
+        registerTicker(contractDetails.contract())
 
         val price = tickerWrapper.currentPrice(contract.conid(), 5, TimeUnit.SECONDS)
         val change = historicalData[contract.conid()]?.let { oldPrice -> price / oldPrice - 1 }
 
-        return CurrentPrice(
-            stockId = contract.conid(),
+        return Stock(
+            id = contractDetails.conid(),
+            name = contractDetails.longName(),
+            symbol = contractDetails.contract().symbol(),
             price = price,
             priceChange24h = change ?: 0.0
         )
