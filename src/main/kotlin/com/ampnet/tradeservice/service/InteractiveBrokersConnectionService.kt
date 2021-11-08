@@ -1,5 +1,6 @@
 package com.ampnet.tradeservice.service
 
+import com.ampnet.tradeservice.configuration.InteractiveBrokersProperties
 import com.ib.client.EClientSocket
 import com.ib.client.EJavaSignal
 import com.ib.client.EReader
@@ -11,7 +12,10 @@ import java.io.IOException
 import kotlin.concurrent.thread
 
 @Service
-class InteractiveBrokersConnectionService(correlationService: InteractiveBrokersCorrelationService) :
+class InteractiveBrokersConnectionService(
+    correlationService: InteractiveBrokersCorrelationService,
+    private val interactiveBrokersProperties: InteractiveBrokersProperties
+) :
     InitializingBean, DisposableBean {
 
     companion object : KLogging()
@@ -21,8 +25,11 @@ class InteractiveBrokersConnectionService(correlationService: InteractiveBrokers
 
     @Suppress("MagicNumber")
     override fun afterPropertiesSet() {
-        logger.info { "Connecting to InteractiveBrokers API..." }
-        client.eConnect("127.0.0.1", 7497, 1) // TODO extract as properties
+        logger.info {
+            "Connecting to InteractiveBrokers API @ ${interactiveBrokersProperties.host}:" +
+                "${interactiveBrokersProperties.port}..."
+        }
+        client.eConnect(interactiveBrokersProperties.host, interactiveBrokersProperties.port, 1)
         logger.info { "Connection to InteractiveBrokers API successful" }
 
         val reader = EReader(client, signal)
