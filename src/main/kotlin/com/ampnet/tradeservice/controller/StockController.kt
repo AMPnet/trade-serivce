@@ -15,8 +15,18 @@ class StockController(private val apiService: InteractiveBrokersApiService) {
         return apiService.listStocks()
     }
 
+    @GetMapping("/stonks")
+    fun listStonks(): Stocks {
+        return apiService.listStocks()
+    }
+
     @GetMapping("/stocks/{stockId}")
     fun listStock(@PathVariable stockId: Int): Stock {
         return apiService.listStock(stockId)
+    }
+
+    @GetMapping("/stonks/{stonkId}")
+    fun listStonks(@PathVariable stonkId: Int): Stock {
+        return apiService.listStock(stonkId)
     }
 }
