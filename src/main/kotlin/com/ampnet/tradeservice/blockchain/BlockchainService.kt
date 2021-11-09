@@ -54,7 +54,7 @@ class BlockchainService(
             emptyList()
         )
         val rawTransaction = RawTransaction.createTransaction(
-            nonce, gasPrice, gasLimit, blockchainProperties.chain.stockAddress, FunctionEncoder.encode(function)
+            nonce, gasPrice, gasLimit, blockchainProperties.chain.orderBookAddress, FunctionEncoder.encode(function)
         )
 
         val manager = RawTransactionManager(blockchainProperties.web3j, blockchainProperties.credentials, chainId)

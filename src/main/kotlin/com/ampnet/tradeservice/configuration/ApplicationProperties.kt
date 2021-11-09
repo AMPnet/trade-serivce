@@ -18,7 +18,6 @@ class ApplicationProperties {
 class ChainProperties {
     var callerAddress: String = "0x0000000000000000000000000000000000000000"
     var privateKey: String = ""
-    var stockAddress: String = ""
     var orderBookAddress: String = ""
     var startBlockNumber: Long = 1
     var numOfConfirmations: Long = 10

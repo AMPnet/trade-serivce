@@ -39,18 +39,22 @@ class QueueService(
     }
 
     fun processTask(chain: Chain, chainProperties: ChainProperties) {
+        logger.debug { "Start to scan chain: ${chain.name}" }
         val task = taskRepository.getTaskForChainId(chain.id)
         val startBlockNumber = task?.blockNumber?.let { it + 1 } ?: chainProperties.startBlockNumber
         try {
+            logger.debug { "Start block number: $startBlockNumber" }
             val latestBlockNumber = blockchainService.getBlockNumber(chain.id)
             val endBlockNumber = calculateEndBlockNumber(
                 startBlockNumber, latestBlockNumber.toLong(), chainProperties
             )
+            logger.debug { "End block number: $endBlockNumber" }
             if (startBlockNumber >= endBlockNumber) {
-//                logger.debug { "End block: $endBlockNumber is smaller than start block: $startBlockNumber" }
+                logger.debug { "End block: $endBlockNumber is smaller than start block: $startBlockNumber" }
                 return
             }
             blockchainEventService.getAllEvents(startBlockNumber, endBlockNumber, chain.id).forEach {
+                logger.info { "Event: $it" }
                 when (it.type) {
                     EventType.BUY -> {
                         val buyOrder = BuyOrder(

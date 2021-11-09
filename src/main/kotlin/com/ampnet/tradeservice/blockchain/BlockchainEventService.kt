@@ -25,6 +25,7 @@ class BlockchainEventService(private val chainPropertiesHandler: ChainProperties
     fun getAllEvents(startBlockNumber: Long, endBlockNumber: Long, chainId: Long): List<Event> {
         val chainProperties = chainPropertiesHandler.getBlockchainProperties(chainId)
         val contract = chainProperties.chain.orderBookAddress
+        logger.debug { "Scanning for events for address: $contract" }
 
         val ethFilter = EthFilter(
             DefaultBlockParameter.valueOf(BigInteger.valueOf(startBlockNumber)),
@@ -38,6 +39,7 @@ class BlockchainEventService(private val chainPropertiesHandler: ChainProperties
                     "for OrderBook contract: $contract"
             )
         val logs = ethLog.logs.mapNotNull { it.get() as? EthLog.LogObject }
+        logger.info { "Scanned logs: ${logs.size}" }
         return generateEvents(logs, chainProperties, chainId)
     }
 
@@ -65,6 +67,7 @@ class BlockchainEventService(private val chainPropertiesHandler: ChainProperties
         skipException { contract.getOrderSettledEvents(txReceipt) }?.forEach {
             events.add(Event(chainId, it))
         }
+        logger.info { "Events: $events" }
         return events
     }
 

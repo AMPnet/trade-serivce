@@ -32,10 +32,7 @@ class ChainPropertiesHandler(private val applicationProperties: ApplicationPrope
             Chain.GOERLI_TESTNET -> applicationProperties.chainGoerli
             Chain.HARDHAT_TESTNET -> applicationProperties.chainHardhatTestnet
         }
-        return if (chainProperties.callerAddress.isBlank() ||
-            chainProperties.orderBookAddress.isBlank() ||
-            chainProperties.stockAddress.isBlank()
-        ) {
+        return if (chainProperties.callerAddress.isBlank() || chainProperties.orderBookAddress.isBlank()) {
             null
         } else {
             chainProperties
