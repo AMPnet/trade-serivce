@@ -2,6 +2,7 @@ package com.ampnet.tradeservice.configuration
 
 import org.jooq.ConnectionProvider
 import org.jooq.DSLContext
+import org.jooq.SQLDialect
 import org.jooq.impl.DSL
 import org.jooq.impl.DataSourceConnectionProvider
 import org.jooq.impl.DefaultConfiguration
@@ -37,6 +38,7 @@ class DatabaseConfig {
     fun configuration(connectionProvider: ConnectionProvider): JooqConfiguration {
         return DefaultConfiguration().apply {
             set(connectionProvider)
+            set(SQLDialect.POSTGRES)
         }
     }
 
