@@ -15,6 +15,7 @@ class PollingTaskRepository(private val dslContext: DSLContext) {
 
     fun updateTaskForChainId(chainId: Long, blockNumber: Long, timestamp: Long): Int =
         dslContext.insertInto(Task.TASK)
+            .set(Task.TASK.CHAIN_ID, chainId)
             .set(Task.TASK.BLOCK_NUMBER, blockNumber)
             .set(Task.TASK.TIMESTAMP, timestamp)
             .onConflict(Task.TASK.CHAIN_ID)
