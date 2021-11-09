@@ -116,6 +116,7 @@ dependencies {
     jooqGenerator(Configurations.Database.driverDependency)
 
     implementation("org.web3j:core:${Versions.Dependencies.web3j}")
+    implementation("com.squareup.okhttp3:okhttp:${Versions.Dependencies.okHttp}")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.Dependencies.kotlinCoroutines}")
     implementation("org.jobrunr:jobrunr-spring-boot-starter:${Versions.Dependencies.jobrunr}")
     implementation("io.github.microutils:kotlin-logging-jvm:${Versions.Dependencies.kotlinLogging}")
