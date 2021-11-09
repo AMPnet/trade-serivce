@@ -47,10 +47,11 @@ enum class EventType {
 value class Amount(val value: BigInteger) {
     companion object {
         val USDC_SCALE = BigDecimal.TEN.pow(18)
+        val SHARES_SCALE = BigDecimal.TEN.pow(18)
         fun fromUsdcDecimalAmount(amount: BigDecimal) = Amount(amount.multiply(USDC_SCALE).toBigInteger())
-        fun fromSharesAmount(amount: Int) = Amount(amount.toBigInteger())
+        fun fromSharesAmount(amount: Int) = Amount(amount.toBigDecimal().multiply(SHARES_SCALE).toBigInteger())
     }
 
     fun toUsdcDecimalAmount() = value.toBigDecimal().div(USDC_SCALE)
-    fun toSharesAmount() = value.toInt()
+    fun toSharesAmount() = value.toBigDecimal().div(SHARES_SCALE).toInt()
 }
