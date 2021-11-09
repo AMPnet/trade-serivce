@@ -6,8 +6,8 @@ object Versions {
 
     object Compile {
         const val kotlin = "1.5.31"
-        val sourceCompatibility = JavaVersion.VERSION_1_8
-        val targetCompatibility = JavaVersion.VERSION_1_8
+        val sourceCompatibility = JavaVersion.VERSION_11
+        val targetCompatibility = JavaVersion.VERSION_11
         val jvmTarget = targetCompatibility.name.removePrefix("VERSION_").replace('_', '.')
     }
 
@@ -21,6 +21,7 @@ object Versions {
         const val web3j = "4.8.4"
         const val flyway = "8.0.1"
         const val jooq = "6.0.1"
+        const val jib = "3.1.4"
     }
 
     object Tools {

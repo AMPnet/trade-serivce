@@ -13,6 +13,7 @@ plugins {
     id("com.adarshr.test-logger").version(Versions.Plugins.testLogger)
     id("org.springframework.boot").version(Versions.Plugins.springBoot)
     id("io.spring.dependency-management").version(Versions.Plugins.springDependencyManagement)
+    id("com.google.cloud.tools.jib").version(Versions.Plugins.jib)
     id("org.web3j").version(Versions.Plugins.web3j)
     id("org.flywaydb.flyway").version(Versions.Plugins.flyway)
     id("nu.studer.jooq").version(Versions.Plugins.jooq)
@@ -64,6 +65,26 @@ sourceSets.main {
 kotlin {
     sourceSets["main"].apply {
         kotlin.srcDir("$buildDir/generated/sources/jooq/main/kotlin")
+    }
+}
+
+jib {
+    val dockerUsername: String = System.getenv("DOCKER_USERNAME") ?: "DOCKER_USERNAME"
+    val dockerPassword: String = System.getenv("DOCKER_PASSWORD") ?: "DOCKER_PASSWORD"
+    to {
+        image = "ampnet/${rootProject.name}:$version"
+        auth {
+            username = dockerUsername
+            password = dockerPassword
+        }
+        tags = setOf("latest")
+    }
+    container {
+        creationTime = "USE_CURRENT_TIMESTAMP"
+        mainClass = "com.ampnet.tradeservice.TradeServiceApplicationKt"
+    }
+    from {
+        image = "${Configurations.Docker.baseImage}:${Configurations.Docker.tag}@${Configurations.Docker.digest}"
     }
 }
 

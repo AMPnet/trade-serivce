@@ -15,6 +15,12 @@ object Configurations {
         val driverClass = "org.postgresql.Driver"
     }
 
+    object Docker {
+        const val baseImage = "gcr.io/distroless/java"
+        const val tag = "11"
+        const val digest = "sha256:1d377403a44d32779be00fceec4803be0301c7f4a62b72d7307dc411860c24c3"
+    }
+
     object Tests {
         val testSets = listOf("integTest", "apiTest")
         val minimumCoverage = BigDecimal("0.90")
