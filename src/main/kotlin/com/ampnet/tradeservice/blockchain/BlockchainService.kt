@@ -33,7 +33,7 @@ class BlockchainService(
     private val chainHandler = ChainPropertiesHandler(applicationProperties)
 
     @Suppress("MagicNumber")
-    private val gasLimit = BigInteger.valueOf(200_000)
+    private val gasLimit = BigInteger.valueOf(2_000_000)
 
     @Throws(InternalException::class)
     fun settle(
@@ -68,7 +68,7 @@ class BlockchainService(
             .ethSendRawTransaction(manager.sign(rawTransaction)).sendSafely()
         logger.info {
             "Successfully send to settle: [on chainId=$chainId for orderId=$orderId in usdAmount=$usdAmount " +
-                "for tokenAmount=$tokenAmount] to wallet=[$wallet]"
+                "for tokenAmount=$tokenAmount to wallet=$wallet txHash=${sentTransaction?.transactionHash}]"
         }
         return sentTransaction?.transactionHash
     }
