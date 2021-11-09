@@ -24,5 +24,5 @@ class ChainProperties {
     var maxBlocks: Long = 1000
     override fun toString(): String =
         "ChainProperties(callerAddress='$callerAddress', orderBookAddress='$orderBookAddress', " +
-                "startBlockNumber=$startBlockNumber, numOfConfirmations=$numOfConfirmations, maxBlocks=$maxBlocks)"
+            "startBlockNumber=$startBlockNumber, numOfConfirmations=$numOfConfirmations, maxBlocks=$maxBlocks)"
 }
