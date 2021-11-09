@@ -36,7 +36,13 @@ class BlockchainService(
     private val gasLimit = BigInteger.valueOf(200_000)
 
     @Throws(InternalException::class)
-    fun settle(chainId: Long, orderId: UInt, usdAmount: UInt, tokenAmount: UInt, wallet: String): String? {
+    fun settle(
+        chainId: Long,
+        orderId: BigInteger,
+        usdAmount: BigInteger,
+        tokenAmount: BigInteger,
+        wallet: String
+    ): String? {
         logger.info {
             "Settle: [on chainId=$chainId for orderId=$orderId in usdAmount=$usdAmount " +
                 "for tokenAmount=$tokenAmount to wallet=$wallet]"
@@ -127,4 +133,4 @@ fun <S, T : Response<*>?> Request<S, T>.sendSafely(): T? {
 @Suppress("MagicNumber")
 fun String.toAddress(): Address = Address(160, this)
 
-fun UInt.toUint(): Uint = Uint(BigInteger.valueOf(this.toLong()))
+fun BigInteger.toUint(): Uint = Uint(this)

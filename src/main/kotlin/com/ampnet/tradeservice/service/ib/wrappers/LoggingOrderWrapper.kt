@@ -16,6 +16,7 @@ import com.ib.client.OrderState
 import com.ib.partial.EOrder
 import mu.KLogging
 import org.springframework.stereotype.Component
+import java.math.BigInteger
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
@@ -66,9 +67,9 @@ class LoggingOrderWrapper(private val blockchainService: BlockchainService) : EO
     private fun refundOrder(placedOrder: PlacedOrder) {
         blockchainService.settle(
             chainId = placedOrder.chainId,
-            orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
-            usdAmount = 0u,
-            tokenAmount = 0u,
+            orderId = placedOrder.blockchainOrderId.value,
+            usdAmount = BigInteger.ZERO,
+            tokenAmount = BigInteger.ZERO,
             wallet = placedOrder.wallet
         )
     }
@@ -77,12 +78,13 @@ class LoggingOrderWrapper(private val blockchainService: BlockchainService) : EO
     private fun settleBuyOrder(placedOrder: PlacedBuyOrder, averageFillPrice: Double) {
         val amountPaid = placedOrder.numShares * averageFillPrice
         val roundedAmountPaid = (ceil(amountPaid * 100).toLong() / 100.0).toBigDecimal()
+        logger.info { "Amount paid: $roundedAmountPaid, average fill price: $averageFillPrice" }
 
         blockchainService.settle(
             chainId = placedOrder.chainId,
-            orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
-            usdAmount = Amount.fromUsdcDecimalAmount(roundedAmountPaid).value.toInt().toUInt(),
-            tokenAmount = placedOrder.numShares.toUInt(),
+            orderId = placedOrder.blockchainOrderId.value,
+            usdAmount = Amount.fromUsdcDecimalAmount(roundedAmountPaid).value,
+            tokenAmount = placedOrder.numShares.toBigInteger(),
             wallet = placedOrder.wallet
         )
     }
@@ -91,12 +93,13 @@ class LoggingOrderWrapper(private val blockchainService: BlockchainService) : EO
     private fun settleSellOrder(placedOrder: PlacedSellOrder, averageFillPrice: Double) {
         val amountReceived = placedOrder.numShares * averageFillPrice
         val roundedAmountReceived = (ceil(amountReceived * 100).toLong() / 100.0).toBigDecimal()
+        logger.info { "Amount received: $roundedAmountReceived, average fill price: $averageFillPrice" }
 
         blockchainService.settle(
             chainId = placedOrder.chainId,
-            orderId = placedOrder.blockchainOrderId.value.toInt().toUInt(),
-            usdAmount = Amount.fromUsdcDecimalAmount(roundedAmountReceived).value.toInt().toUInt(),
-            tokenAmount = placedOrder.numShares.toUInt(),
+            orderId = placedOrder.blockchainOrderId.value,
+            usdAmount = Amount.fromUsdcDecimalAmount(roundedAmountReceived).value,
+            tokenAmount = placedOrder.numShares.toBigInteger(),
             wallet = placedOrder.wallet
         )
     }
