@@ -32,6 +32,8 @@ class QueueService(
             }
         }
         activeChains.forEach {
+            logger.info { "Creating scanning task for chain: ${it.first}" }
+            logger.info { "Chain properties: ${it.second}" }
             BackgroundJob.scheduleRecurrently(it.first.name, "*/10 * * * * *") {
                 processTask(it.first, it.second)
             }
@@ -83,7 +85,7 @@ class QueueService(
             }
             taskRepository.updateTaskForChainId(chain.id, endBlockNumber, Instant.now().toEpochMilli())
         } catch (ex: Throwable) {
-            logger.error { "Failed to fetch blockchain events: ${ex.message}" }
+            logger.error(ex) { "Failed to fetch blockchain events: ${ex.message}" }
         }
     }
 

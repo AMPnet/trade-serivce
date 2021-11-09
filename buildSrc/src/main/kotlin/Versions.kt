@@ -31,7 +31,7 @@ object Versions {
     }
 
     object Dependencies {
-        const val web3j = Plugins.web3j
+        const val web3j = "4.8.7"
         const val kotlinCoroutines = "1.5.2"
         const val kotlinLogging = "2.0.6"
         const val mockitoKotlin = "3.2.0"
