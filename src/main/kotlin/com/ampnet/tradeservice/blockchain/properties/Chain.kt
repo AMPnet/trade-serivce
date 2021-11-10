@@ -31,6 +31,12 @@ enum class Chain(val id: Long, val rpcUrl: String, val infura: String?, val pric
         "http://hardhat:8545",
         null,
         null
+    ),
+    AURORA_TESTNET(
+        1313161555,
+        "https://testnet.aurora.dev/",
+        null,
+        null
     );
 
     companion object {
