@@ -46,7 +46,6 @@ class LoggingTickerWrapper : ETicker {
             field == TickType.DELAYED_ASK.index() ||
             field == TickType.DELAYED_LAST.index()
         ) {
-            logger.info { "tickPrice(tickerId: $tickerId, field: $field, price: $price, attrib: $attrib)" }
             if (currentStockPrices[tickerId] == null) {
                 initialStockPrices[tickerId]?.complete(price)
             }

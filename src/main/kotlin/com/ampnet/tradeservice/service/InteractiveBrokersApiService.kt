@@ -43,7 +43,7 @@ class InteractiveBrokersApiService(
         }
 
         val retrievedContractsDetails = futures.map {
-            logger.info { "Block on id: ${it.second}" }
+            logger.debug { "Block on id: ${it.second}" }
             it.first.get(5, TimeUnit.SECONDS)
         }
 
@@ -74,7 +74,7 @@ class InteractiveBrokersApiService(
 
         connectionService.client.reqContractDetails(requestId, contract)
 
-        logger.info { "Block on id: $requestId" }
+        logger.debug { "Block on id: $requestId" }
         val contractDetails = future.get(5, TimeUnit.SECONDS)
 
         registerTicker(contractDetails.contract())

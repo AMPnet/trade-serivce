@@ -30,7 +30,7 @@ class InteractiveBrokersConnectionService(
                 "${interactiveBrokersProperties.port}..."
         }
         client.eConnect(interactiveBrokersProperties.host, interactiveBrokersProperties.port, 1)
-        logger.info { "Connection to InteractiveBrokers API successful" }
+        logger.info { "Connection to InteractiveBrokers API requested" }
 
         val reader = EReader(client, signal)
         reader.start()
