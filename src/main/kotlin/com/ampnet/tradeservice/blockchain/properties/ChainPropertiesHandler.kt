@@ -31,6 +31,7 @@ class ChainPropertiesHandler(private val applicationProperties: ApplicationPrope
             Chain.ETHEREUM_MAIN -> applicationProperties.chainEthereum
             Chain.GOERLI_TESTNET -> applicationProperties.chainGoerli
             Chain.HARDHAT_TESTNET -> applicationProperties.chainHardhatTestnet
+            Chain.AURORA_TESTNET -> applicationProperties.chainAuroraTestnet
         }
         return if (chainProperties.callerAddress.isBlank() || chainProperties.orderBookAddress.isBlank()) {
             null
