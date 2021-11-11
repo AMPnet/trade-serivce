@@ -31,7 +31,7 @@ class OrderQueueService(
         }
     }
 
-    private fun failLongPendingOrders(minAge: Duration) {
+    fun failLongPendingOrders(minAge: Duration) {
         orderRepository.getPendingBuyOrders(minAge).forEach {
             logger.info { "Failing long pending buy order: ${it.serialId}" }
             orderSettlementService.refundOrder(it)
@@ -43,7 +43,7 @@ class OrderQueueService(
         }
     }
 
-    private fun resubmitPreparedOrders(minAge: Duration) {
+    fun resubmitPreparedOrders(minAge: Duration) {
         orderRepository.getPreparedBuyOrders(minAge).forEach {
             orderRepository.deleteOrder(it.serialId)
             val buyOrder = BuyOrder(
