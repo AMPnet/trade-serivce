@@ -32,6 +32,7 @@ class OrderQueueService(
     }
 
     fun failLongPendingOrders(minAge: Duration) {
+        logger.info { "Checking for long pending orders..." }
         orderRepository.getPendingBuyOrders(minAge).forEach {
             logger.info { "Failing long pending buy order: ${it.serialId}" }
             orderSettlementService.refundOrder(it)
@@ -44,8 +45,8 @@ class OrderQueueService(
     }
 
     fun resubmitPreparedOrders(minAge: Duration) {
+        logger.info { "Checking for prepared orders..." }
         orderRepository.getPreparedBuyOrders(minAge).forEach {
-            orderRepository.deleteOrder(it.serialId)
             val buyOrder = BuyOrder(
                 stockId = it.order.stockId,
                 blockchainOrderId = it.order.blockchainOrderId,
@@ -53,12 +54,12 @@ class OrderQueueService(
                 wallet = it.order.wallet,
                 amountUsd = it.order.amountUsd
             )
-            interactiveBrokersApiService.placeBuyOrder(buyOrder)
-            logger.info { "Re-submitted buy order: $buyOrder" }
+            val newId = interactiveBrokersApiService.placeBuyOrder(buyOrder).serialId
+            orderRepository.deleteOrder(it.serialId)
+            logger.info { "Re-submitted buy order: $buyOrder with new id: $newId" }
         }
 
         orderRepository.getPreparedSellOrders(minAge).forEach {
-            orderRepository.deleteOrder(it.serialId)
             val sellOrder = SellOrder(
                 stockId = it.order.stockId,
                 blockchainOrderId = it.order.blockchainOrderId,
@@ -66,8 +67,9 @@ class OrderQueueService(
                 wallet = it.order.wallet,
                 numShares = it.order.numShares
             )
-            interactiveBrokersApiService.placeSellOrder(sellOrder)
-            logger.info { "Re-submitted sell order: $sellOrder" }
+            val newId = interactiveBrokersApiService.placeSellOrder(sellOrder).serialId
+            orderRepository.deleteOrder(it.serialId)
+            logger.info { "Re-submitted sell order: $sellOrder with new id: $newId" }
         }
     }
 }
