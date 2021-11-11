@@ -1,8 +1,8 @@
 package com.ampnet.tradeservice.service
 
+import com.ampnet.tradeservice.generated.jooq.enums.OrderStatus
 import com.ampnet.tradeservice.model.BuyOrder
 import com.ampnet.tradeservice.model.InteractiveBrokersOrderId
-import com.ampnet.tradeservice.model.OrderStatus
 import com.ampnet.tradeservice.model.PlacedBuyOrder
 import com.ampnet.tradeservice.model.PlacedSellOrder
 import com.ampnet.tradeservice.model.SellOrder

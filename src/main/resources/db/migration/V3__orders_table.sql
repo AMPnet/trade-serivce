@@ -6,7 +6,7 @@ CREATE TYPE trade_service.ORDER_STATUS AS ENUM ('PREPARED', 'PENDING', 'SUCCESSF
 CREATE TABLE trade_service.order (
     id                           SERIAL UNIQUE,
     interactive_brokers_order_id INTEGER                    NOT NULL,
-    blockchain_order_id          INTEGER                    NOT NULL,
+    blockchain_order_id          BIGINT                     NOT NULL,
     chain_id                     BIGINT                     NOT NULL,
     wallet                       VARCHAR                    NOT NULL,
     stock_id                     INTEGER                    NOT NULL,
