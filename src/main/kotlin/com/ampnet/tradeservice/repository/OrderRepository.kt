@@ -18,6 +18,7 @@ import java.time.Duration
 import java.time.OffsetDateTime
 
 @Repository
+@Suppress("TooManyFunctions")
 class OrderRepository(private val dslContext: DSLContext) {
 
     fun storeBuyOrder(order: PlacedBuyOrder): SerialId<PlacedBuyOrder> {

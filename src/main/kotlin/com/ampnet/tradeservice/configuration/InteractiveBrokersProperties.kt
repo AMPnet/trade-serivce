@@ -3,6 +3,7 @@ package com.ampnet.tradeservice.configuration
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Configuration
 
+@Suppress("MagicNumber")
 @Configuration
 @ConfigurationProperties(prefix = "interactive-brokers")
 class InteractiveBrokersProperties {

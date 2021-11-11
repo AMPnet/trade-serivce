@@ -4,6 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Configuration
 import java.time.Duration
 
+@Suppress("MagicNumber")
 @Configuration
 @ConfigurationProperties(prefix = "order")
 class OrderProperties {
