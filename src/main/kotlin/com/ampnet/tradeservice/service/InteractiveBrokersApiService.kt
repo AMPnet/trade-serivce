@@ -2,11 +2,14 @@ package com.ampnet.tradeservice.service
 
 import com.ampnet.tradeservice.model.BuyOrder
 import com.ampnet.tradeservice.model.InteractiveBrokersOrderId
+import com.ampnet.tradeservice.model.OrderStatus
 import com.ampnet.tradeservice.model.PlacedBuyOrder
 import com.ampnet.tradeservice.model.PlacedSellOrder
 import com.ampnet.tradeservice.model.SellOrder
+import com.ampnet.tradeservice.model.SerialId
 import com.ampnet.tradeservice.model.Stock
 import com.ampnet.tradeservice.model.Stocks
+import com.ampnet.tradeservice.repository.OrderRepository
 import com.ampnet.tradeservice.service.ib.contracts.PredefinedContracts
 import com.ampnet.tradeservice.service.ib.contracts.PredefinedContracts.historicalData
 import com.ampnet.tradeservice.service.ib.contracts.PredefinedContracts.toContract
@@ -28,7 +31,8 @@ class InteractiveBrokersApiService(
     private val correlationService: InteractiveBrokersCorrelationService,
     private val contractWrapper: LoggingContractWrapper,
     private val tickerWrapper: LoggingTickerWrapper,
-    private val orderWrapper: LoggingOrderWrapper
+    private val orderWrapper: LoggingOrderWrapper,
+    private val orderRepository: OrderRepository
 ) {
 
     companion object : KLogging()
@@ -91,7 +95,7 @@ class InteractiveBrokersApiService(
         )
     }
 
-    fun placeBuyOrder(buyOrder: BuyOrder): PlacedBuyOrder {
+    fun placeBuyOrder(buyOrder: BuyOrder): SerialId<PlacedBuyOrder> {
         logger.info { "Request buy order: $buyOrder" }
         val contract = buyOrder.stockId.toContract()
 
@@ -118,14 +122,20 @@ class InteractiveBrokersApiService(
             maxPrice = maxPrice,
             numShares = numShares
         )
+        val storedOrder = orderRepository.storeBuyOrder(placedOrder)
 
-        orderWrapper.queueBuyOrder(placedOrder)
-        connectionService.client.placeOrder(orderId, contract, order)
+        if (storedOrder.status == OrderStatus.PREPARED) {
+            logger.info { "Order is in prepared state, queueing..." }
+            orderWrapper.queueBuyOrder(storedOrder)
+            connectionService.client.placeOrder(orderId, contract, order)
+        } else {
+            logger.info { "Order was previously submitted, skipping queue..." }
+        }
 
-        return placedOrder
+        return storedOrder
     }
 
-    fun placeSellOrder(sellOrder: SellOrder): PlacedSellOrder {
+    fun placeSellOrder(sellOrder: SellOrder): SerialId<PlacedSellOrder> {
         logger.info { "Request sell order: $sellOrder" }
         val contract = sellOrder.stockId.toContract()
 
@@ -150,11 +160,17 @@ class InteractiveBrokersApiService(
             minPrice = minPrice,
             numShares = sellOrder.numShares
         )
+        val storedOrder = orderRepository.storeSellOrder(placedOrder)
 
-        orderWrapper.queueSellOrder(placedOrder)
-        connectionService.client.placeOrder(orderId, contract, order)
+        if (storedOrder.status == OrderStatus.PREPARED) {
+            logger.info { "Order is in prepared state, queueing..." }
+            orderWrapper.queueSellOrder(storedOrder)
+            connectionService.client.placeOrder(orderId, contract, order)
+        } else {
+            logger.info { "Order was previously submitted, skipping queue..." }
+        }
 
-        return placedOrder
+        return storedOrder
     }
 
     private fun registerTicker(contract: Contract) {

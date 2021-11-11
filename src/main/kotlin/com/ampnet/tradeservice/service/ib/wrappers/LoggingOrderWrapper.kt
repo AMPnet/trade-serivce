@@ -1,7 +1,5 @@
 package com.ampnet.tradeservice.service.ib.wrappers
 
-import com.ampnet.tradeservice.blockchain.Amount
-import com.ampnet.tradeservice.blockchain.BlockchainService
 import com.ampnet.tradeservice.model.OrderStatus
 import com.ampnet.tradeservice.model.PlacedBuyOrder
 import com.ampnet.tradeservice.model.PlacedOrder
@@ -9,6 +7,8 @@ import com.ampnet.tradeservice.model.PlacedSellOrder
 import com.ampnet.tradeservice.model.QueuedBuyOrder
 import com.ampnet.tradeservice.model.QueuedOrder
 import com.ampnet.tradeservice.model.QueuedSellOrder
+import com.ampnet.tradeservice.model.SerialId
+import com.ampnet.tradeservice.service.OrderSettlementService
 import com.ib.client.Contract
 import com.ib.client.Execution
 import com.ib.client.Order
@@ -16,16 +16,16 @@ import com.ib.client.OrderState
 import com.ib.partial.EOrder
 import mu.KLogging
 import org.springframework.stereotype.Component
-import java.math.BigInteger
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.UnaryOperator
-import kotlin.math.ceil
 
 @Suppress("TooManyFunctions")
 @Component
-class LoggingOrderWrapper(private val blockchainService: BlockchainService) : EOrder {
+class LoggingOrderWrapper(
+    private val settlementService: OrderSettlementService
+) : EOrder {
 
     companion object : KLogging()
 
@@ -33,7 +33,7 @@ class LoggingOrderWrapper(private val blockchainService: BlockchainService) : EO
     private val queuedOrders = ConcurrentHashMap<Int, QueuedOrder>()
 
     private fun orderStatusTransitions(
-        placedOrder: PlacedOrder,
+        placedOrder: SerialId<out PlacedOrder>,
         averageFillPrice: Double,
         targetStatus: OrderStatus
     ): UnaryOperator<OrderStatus> {
@@ -43,18 +43,38 @@ class LoggingOrderWrapper(private val blockchainService: BlockchainService) : EO
                 OrderStatus.PREPARED, OrderStatus.PENDING ->
                     when (targetStatus) {
                         // do not allow transition back to prepared status
-                        OrderStatus.PREPARED, OrderStatus.PENDING -> OrderStatus.PENDING
+                        OrderStatus.PREPARED, OrderStatus.PENDING -> {
+                            logger.info { "Order pending: ${placedOrder.serialId}" }
+                            settlementService.pendingOrder(placedOrder)
+                            OrderStatus.PENDING
+                        }
+
                         OrderStatus.FAILED -> {
-                            logger.info { "Order failed!" }
-                            refundOrder(placedOrder)
+                            logger.info { "Order failed: ${placedOrder.serialId}" }
+                            settlementService.refundOrder(placedOrder)
                             OrderStatus.FAILED
                         }
-                        OrderStatus.SUCCESSFUL -> {
-                            logger.info { "Order successful" }
 
-                            when (placedOrder) {
-                                is PlacedBuyOrder -> settleBuyOrder(placedOrder, averageFillPrice)
-                                is PlacedSellOrder -> settleSellOrder(placedOrder, averageFillPrice)
+                        OrderStatus.SUCCESSFUL -> {
+                            logger.info { "Order successful: ${placedOrder.serialId}" }
+
+                            when (placedOrder.order) {
+                                is PlacedBuyOrder -> settlementService.settleBuyOrder(
+                                    SerialId(
+                                        placedOrder.serialId,
+                                        placedOrder.status,
+                                        placedOrder.order
+                                    ),
+                                    averageFillPrice
+                                )
+                                is PlacedSellOrder -> settlementService.settleSellOrder(
+                                    SerialId(
+                                        placedOrder.serialId,
+                                        placedOrder.status,
+                                        placedOrder.order
+                                    ),
+                                    averageFillPrice
+                                )
                             }
 
                             OrderStatus.SUCCESSFUL
@@ -64,55 +84,15 @@ class LoggingOrderWrapper(private val blockchainService: BlockchainService) : EO
         }
     }
 
-    private fun refundOrder(placedOrder: PlacedOrder) {
-        blockchainService.settle(
-            chainId = placedOrder.chainId,
-            orderId = placedOrder.blockchainOrderId.value,
-            usdAmount = BigInteger.ZERO,
-            tokenAmount = BigInteger.ZERO,
-            wallet = placedOrder.wallet
-        )
-    }
-
-    @Suppress("MagicNumber")
-    private fun settleBuyOrder(placedOrder: PlacedBuyOrder, averageFillPrice: Double) {
-        val amountPaid = placedOrder.numShares * averageFillPrice
-        val roundedAmountPaid = (ceil(amountPaid * 100).toLong() / 100.0).toBigDecimal()
-        logger.info { "Amount paid: $roundedAmountPaid, average fill price: $averageFillPrice" }
-
-        blockchainService.settle(
-            chainId = placedOrder.chainId,
-            orderId = placedOrder.blockchainOrderId.value,
-            usdAmount = Amount.fromUsdcDecimalAmount(roundedAmountPaid).value,
-            tokenAmount = Amount.fromSharesAmount(placedOrder.numShares).value,
-            wallet = placedOrder.wallet
-        )
-    }
-
-    @Suppress("MagicNumber")
-    private fun settleSellOrder(placedOrder: PlacedSellOrder, averageFillPrice: Double) {
-        val amountReceived = placedOrder.numShares * averageFillPrice
-        val roundedAmountReceived = (ceil(amountReceived * 100).toLong() / 100.0).toBigDecimal()
-        logger.info { "Amount received: $roundedAmountReceived, average fill price: $averageFillPrice" }
-
-        blockchainService.settle(
-            chainId = placedOrder.chainId,
-            orderId = placedOrder.blockchainOrderId.value,
-            usdAmount = Amount.fromUsdcDecimalAmount(roundedAmountReceived).value,
-            tokenAmount = Amount.fromSharesAmount(placedOrder.numShares).value,
-            wallet = placedOrder.wallet
-        )
-    }
-
     fun nextOrderId() = nextOrderId.getAndIncrement()
 
-    fun queueBuyOrder(order: PlacedBuyOrder) {
-        queuedOrders[order.interactiveBrokersOrderId.value] =
+    fun queueBuyOrder(order: SerialId<PlacedBuyOrder>) {
+        queuedOrders[order.order.interactiveBrokersOrderId.value] =
             QueuedBuyOrder(AtomicReference(OrderStatus.PREPARED), order)
     }
 
-    fun queueSellOrder(order: PlacedSellOrder) {
-        queuedOrders[order.interactiveBrokersOrderId.value] =
+    fun queueSellOrder(order: SerialId<PlacedSellOrder>) {
+        queuedOrders[order.order.interactiveBrokersOrderId.value] =
             QueuedSellOrder(AtomicReference(OrderStatus.PREPARED), order)
     }
 

@@ -53,21 +53,27 @@ data class PlacedSellOrder(
     val numShares: Int
 ) : PlacedOrder
 
+data class SerialId<O : PlacedOrder>(
+    val serialId: Int,
+    val status: OrderStatus,
+    val order: O
+)
+
 enum class OrderStatus {
     PREPARED, PENDING, SUCCESSFUL, FAILED
 }
 
 sealed interface QueuedOrder {
     val status: AtomicReference<OrderStatus>
-    val order: PlacedOrder
+    val order: SerialId<out PlacedOrder>
 }
 
 class QueuedBuyOrder(
     override val status: AtomicReference<OrderStatus>,
-    override val order: PlacedBuyOrder
+    override val order: SerialId<PlacedBuyOrder>
 ) : QueuedOrder
 
 class QueuedSellOrder(
     override val status: AtomicReference<OrderStatus>,
-    override val order: PlacedSellOrder
+    override val order: SerialId<PlacedSellOrder>
 ) : QueuedOrder
