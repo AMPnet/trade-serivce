@@ -2,11 +2,12 @@ package com.ampnet.tradeservice.configuration
 
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Configuration
+import java.time.Duration
 
 @Suppress("MagicNumber")
 @Configuration
-@ConfigurationProperties(prefix = "interactive-brokers")
-class InteractiveBrokersProperties {
-    var host: String = "127.0.0.1"
-    var port: Int = 7497
+@ConfigurationProperties(prefix = "order")
+class OrderProperties {
+    var maxPendingDuration: Duration = Duration.ofMinutes(10)
+    var maxPreparedDuration: Duration = Duration.ofMinutes(10)
 }

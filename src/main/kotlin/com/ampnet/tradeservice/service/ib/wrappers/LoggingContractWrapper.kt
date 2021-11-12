@@ -16,25 +16,25 @@ class LoggingContractWrapper : EContract {
     private val futureContractDetails = ConcurrentHashMap<Int, CompletableFuture<ContractDetails>>()
 
     fun registerRequest(requestId: Int): Future<ContractDetails> {
-        logger.info { "Register future with id: $requestId" }
+        logger.debug { "Register future with id: $requestId" }
         val future = CompletableFuture<ContractDetails>()
         futureContractDetails[requestId] = future
         return future
     }
 
     override fun contractDetails(reqId: Int, contractDetails: ContractDetails?) {
-        logger.info { "contractDetails(reqId: $reqId, contractDetails: ...)" }
+        logger.debug { "contractDetails(reqId: $reqId, contractDetails: ...)" }
         if (contractDetails != null) {
             val complete = futureContractDetails[reqId]?.complete(contractDetails)
-            logger.info { "Complete future with id: $reqId = $complete" }
+            logger.debug { "Complete future with id: $reqId = $complete" }
         }
     }
 
     override fun bondContractDetails(reqId: Int, contractDetails: ContractDetails?) {
-        logger.info { "bondContractDetails(reqId: $reqId, contractDetails: $contractDetails)" }
+        logger.debug { "bondContractDetails(reqId: $reqId, contractDetails: $contractDetails)" }
     }
 
     override fun contractDetailsEnd(reqId: Int) {
-        logger.info { "contractDetailsEnd(reqId: $reqId)" }
+        logger.debug { "contractDetailsEnd(reqId: $reqId)" }
     }
 }
