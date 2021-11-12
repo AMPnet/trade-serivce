@@ -21,80 +21,70 @@ import java.time.OffsetDateTime
 @Suppress("TooManyFunctions")
 class OrderRepository(private val dslContext: DSLContext) {
 
-    fun storeBuyOrder(order: PlacedBuyOrder): SerialId<PlacedBuyOrder> {
-        return dslContext.insertInto(Order.ORDER)
+    fun storeBuyOrder(order: PlacedBuyOrder): SerialId<PlacedBuyOrder> =
+        dslContext.insertInto(Order.ORDER)
             .set(order.toRecord())
             .returning()
             .fetchOne()
             ?.toOrderObject()
             ?: throw IllegalStateException("Could not insert order into database: $order")
-    }
 
-    fun storeSellOrder(order: PlacedSellOrder): SerialId<PlacedSellOrder> {
-        return dslContext.insertInto(Order.ORDER)
+    fun storeSellOrder(order: PlacedSellOrder): SerialId<PlacedSellOrder> =
+        dslContext.insertInto(Order.ORDER)
             .set(order.toRecord())
             .returning()
             .fetchOne()
             ?.toOrderObject()
             ?: throw IllegalStateException("Could not insert order into database: $order")
-    }
 
-    fun <O : PlacedOrder> markAsPending(order: SerialId<O>): SerialId<O> {
-        return updateOrderStatus(
+    fun <O : PlacedOrder> markAsPending(order: SerialId<O>): SerialId<O> =
+        updateOrderStatus(
             order = order,
             fromStatus = OrderStatus.PREPARED,
             toStatus = OrderStatus.PENDING,
             timestampField = Order.ORDER.SUBMITTED_AT
         )
-    }
 
-    fun <O : PlacedOrder> markAsSuccessful(order: SerialId<O>): SerialId<O> {
-        return updateOrderStatus(
+    fun <O : PlacedOrder> markAsSuccessful(order: SerialId<O>): SerialId<O> =
+        updateOrderStatus(
             order = order,
             fromStatus = OrderStatus.PENDING,
             toStatus = OrderStatus.SUCCESSFUL,
             timestampField = Order.ORDER.COMPLETED_AT
         )
-    }
 
-    fun <O : PlacedOrder> markAsFailed(order: SerialId<O>): SerialId<O> {
-        return updateOrderStatus(
+    fun <O : PlacedOrder> markAsFailed(order: SerialId<O>): SerialId<O> =
+        updateOrderStatus(
             order = order,
             fromStatus = OrderStatus.PENDING,
             toStatus = OrderStatus.FAILED,
             timestampField = Order.ORDER.COMPLETED_AT
         )
-    }
 
-    fun getPreparedBuyOrders(minAge: Duration): List<SerialId<PlacedBuyOrder>> {
-        return getOrders(OrderType.BUY, OrderStatus.PREPARED, minAge, Order.ORDER.CREATED_AT)
-    }
+    fun getPreparedBuyOrders(minAge: Duration): List<SerialId<PlacedBuyOrder>> =
+        getOrders(OrderType.BUY, OrderStatus.PREPARED, minAge, Order.ORDER.CREATED_AT)
 
-    fun getPreparedSellOrders(minAge: Duration): List<SerialId<PlacedSellOrder>> {
-        return getOrders(OrderType.SELL, OrderStatus.PREPARED, minAge, Order.ORDER.CREATED_AT)
-    }
+    fun getPreparedSellOrders(minAge: Duration): List<SerialId<PlacedSellOrder>> =
+        getOrders(OrderType.SELL, OrderStatus.PREPARED, minAge, Order.ORDER.CREATED_AT)
 
-    fun getPendingBuyOrders(minAge: Duration): List<SerialId<PlacedBuyOrder>> {
-        return getOrders(OrderType.BUY, OrderStatus.PENDING, minAge, Order.ORDER.SUBMITTED_AT)
-    }
+    fun getPendingBuyOrders(minAge: Duration): List<SerialId<PlacedBuyOrder>> =
+        getOrders(OrderType.BUY, OrderStatus.PENDING, minAge, Order.ORDER.SUBMITTED_AT)
 
-    fun getPendingSellOrders(minAge: Duration): List<SerialId<PlacedSellOrder>> {
-        return getOrders(OrderType.SELL, OrderStatus.PENDING, minAge, Order.ORDER.SUBMITTED_AT)
-    }
+    fun getPendingSellOrders(minAge: Duration): List<SerialId<PlacedSellOrder>> =
+        getOrders(OrderType.SELL, OrderStatus.PENDING, minAge, Order.ORDER.SUBMITTED_AT)
 
-    fun deleteOrder(id: Int) {
+    fun deleteOrder(id: Int): Int =
         dslContext.deleteFrom(Order.ORDER)
             .where(Order.ORDER.ID.eq(id))
             .execute()
-    }
 
     private fun <O : PlacedOrder> updateOrderStatus(
         order: SerialId<O>,
         fromStatus: OrderStatus,
         toStatus: OrderStatus,
         timestampField: TableField<OrderRecord, OffsetDateTime?>
-    ): SerialId<O> {
-        return dslContext.update(Order.ORDER)
+    ): SerialId<O> =
+        dslContext.update(Order.ORDER)
             .set(Order.ORDER.ORDER_STATUS, toStatus)
             .set(timestampField, OffsetDateTime.now())
             .where(
@@ -106,29 +96,26 @@ class OrderRepository(private val dslContext: DSLContext) {
             .fetchOne()
             ?.toOrderObject()
             ?: order
-    }
 
     private fun <O : PlacedOrder> getOrders(
         orderType: OrderType,
         orderStatus: OrderStatus,
         minAge: Duration,
         timestampField: TableField<OrderRecord, OffsetDateTime?>
-    ): List<SerialId<O>> {
-        return dslContext.selectFrom(Order.ORDER)
+    ): List<SerialId<O>> =
+        dslContext.selectFrom(Order.ORDER)
             .where(
                 Order.ORDER.ORDER_TYPE.eq(orderType)
                     .and(Order.ORDER.ORDER_STATUS.eq(orderStatus))
                     .and(timestampField.le(OffsetDateTime.now().minus(minAge)))
             )
             .fetch { it.toOrderObject() }
-    }
 
-    private fun SerialId<out PlacedOrder>.orderType(): OrderType {
-        return when (this.order) {
+    private fun SerialId<out PlacedOrder>.orderType(): OrderType =
+        when (this.order) {
             is PlacedBuyOrder -> OrderType.BUY
             is PlacedSellOrder -> OrderType.SELL
         }
-    }
 
     private fun PlacedOrder.toRecord(): OrderRecord {
         val order = this

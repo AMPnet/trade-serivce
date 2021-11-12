@@ -32,58 +32,6 @@ class LoggingOrderWrapper(
     private val nextOrderId = AtomicInteger()
     private val queuedOrders = ConcurrentHashMap<Int, QueuedOrder>()
 
-    private fun orderStatusTransitions(
-        placedOrder: SerialId<out PlacedOrder>,
-        averageFillPrice: Double,
-        targetStatus: OrderStatus
-    ): UnaryOperator<OrderStatus> {
-        return UnaryOperator { oldStatus ->
-            when (oldStatus) {
-                OrderStatus.FAILED, OrderStatus.SUCCESSFUL -> oldStatus // do nothing for completed orders
-                OrderStatus.PREPARED, OrderStatus.PENDING ->
-                    when (targetStatus) {
-                        // do not allow transition back to prepared status
-                        OrderStatus.PREPARED, OrderStatus.PENDING -> {
-                            logger.info { "Order pending: ${placedOrder.serialId}" }
-                            settlementService.pendingOrder(placedOrder)
-                            OrderStatus.PENDING
-                        }
-
-                        OrderStatus.FAILED -> {
-                            logger.info { "Order failed: ${placedOrder.serialId}" }
-                            settlementService.refundOrder(placedOrder)
-                            OrderStatus.FAILED
-                        }
-
-                        OrderStatus.SUCCESSFUL -> {
-                            logger.info { "Order successful: ${placedOrder.serialId}" }
-
-                            when (placedOrder.order) {
-                                is PlacedBuyOrder -> settlementService.settleBuyOrder(
-                                    SerialId(
-                                        placedOrder.serialId,
-                                        placedOrder.status,
-                                        placedOrder.order
-                                    ),
-                                    averageFillPrice
-                                )
-                                is PlacedSellOrder -> settlementService.settleSellOrder(
-                                    SerialId(
-                                        placedOrder.serialId,
-                                        placedOrder.status,
-                                        placedOrder.order
-                                    ),
-                                    averageFillPrice
-                                )
-                            }
-
-                            OrderStatus.SUCCESSFUL
-                        }
-                    }
-            }
-        }
-    }
-
     fun nextOrderId() = nextOrderId.getAndIncrement()
 
     fun queueBuyOrder(order: SerialId<PlacedBuyOrder>) {
@@ -173,5 +121,57 @@ class LoggingOrderWrapper(
 
     override fun completedOrdersEnd() {
         logger.info { "completedOrdersEnd()" }
+    }
+
+    private fun orderStatusTransitions(
+        placedOrder: SerialId<out PlacedOrder>,
+        averageFillPrice: Double,
+        targetStatus: OrderStatus
+    ): UnaryOperator<OrderStatus> {
+        return UnaryOperator { oldStatus ->
+            when (oldStatus) {
+                OrderStatus.FAILED, OrderStatus.SUCCESSFUL -> oldStatus // do nothing for completed orders
+                OrderStatus.PREPARED, OrderStatus.PENDING ->
+                    when (targetStatus) {
+                        // do not allow transition back to prepared status
+                        OrderStatus.PREPARED, OrderStatus.PENDING -> {
+                            logger.info { "Order pending: ${placedOrder.serialId}" }
+                            settlementService.pendingOrder(placedOrder)
+                            OrderStatus.PENDING
+                        }
+
+                        OrderStatus.FAILED -> {
+                            logger.info { "Order failed: ${placedOrder.serialId}" }
+                            settlementService.refundOrder(placedOrder)
+                            OrderStatus.FAILED
+                        }
+
+                        OrderStatus.SUCCESSFUL -> {
+                            logger.info { "Order successful: ${placedOrder.serialId}" }
+
+                            when (placedOrder.order) {
+                                is PlacedBuyOrder -> settlementService.settleBuyOrder(
+                                    SerialId(
+                                        placedOrder.serialId,
+                                        placedOrder.status,
+                                        placedOrder.order
+                                    ),
+                                    averageFillPrice
+                                )
+                                is PlacedSellOrder -> settlementService.settleSellOrder(
+                                    SerialId(
+                                        placedOrder.serialId,
+                                        placedOrder.status,
+                                        placedOrder.order
+                                    ),
+                                    averageFillPrice
+                                )
+                            }
+
+                            OrderStatus.SUCCESSFUL
+                        }
+                    }
+            }
+        }
     }
 }
