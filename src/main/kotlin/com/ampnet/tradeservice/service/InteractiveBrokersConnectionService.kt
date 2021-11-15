@@ -1,10 +1,12 @@
 package com.ampnet.tradeservice.service
 
 import com.ampnet.tradeservice.configuration.InteractiveBrokersProperties
+import com.ampnet.tradeservice.service.ib.wrappers.LoggingErrorAndConnectionWrapper
 import com.ib.client.EClientSocket
 import com.ib.client.EJavaSignal
 import com.ib.client.EReader
 import mu.KLogging
+import org.springframework.beans.factory.BeanInitializationException
 import org.springframework.beans.factory.DisposableBean
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.stereotype.Service
@@ -14,9 +16,9 @@ import kotlin.concurrent.thread
 @Service
 class InteractiveBrokersConnectionService(
     correlationService: InteractiveBrokersCorrelationService,
+    private val errorWrapper: LoggingErrorAndConnectionWrapper,
     private val interactiveBrokersProperties: InteractiveBrokersProperties
-) :
-    InitializingBean, DisposableBean {
+) : InitializingBean, DisposableBean {
 
     companion object : KLogging()
 
@@ -44,6 +46,10 @@ class InteractiveBrokersConnectionService(
                     logger.error(e) { "Error while reading message from IB API" }
                 }
             }
+        }
+
+        if (!errorWrapper.isConnected()) {
+            throw BeanInitializationException("Unable to connect to InteractiveBrokers API")
         }
 
         // TODO extract?

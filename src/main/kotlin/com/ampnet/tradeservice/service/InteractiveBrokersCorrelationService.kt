@@ -1,9 +1,8 @@
 package com.ampnet.tradeservice.service
 
 import com.ampnet.tradeservice.service.ib.wrappers.LoggingAccountWrapper
-import com.ampnet.tradeservice.service.ib.wrappers.LoggingConnectionWrapper
 import com.ampnet.tradeservice.service.ib.wrappers.LoggingContractWrapper
-import com.ampnet.tradeservice.service.ib.wrappers.LoggingErrorWrapper
+import com.ampnet.tradeservice.service.ib.wrappers.LoggingErrorAndConnectionWrapper
 import com.ampnet.tradeservice.service.ib.wrappers.LoggingOrderWrapper
 import com.ampnet.tradeservice.service.ib.wrappers.LoggingTickerWrapper
 import com.ampnet.tradeservice.service.ib.wrappers.LoggingUngroupedWrapper
@@ -21,16 +20,15 @@ import java.util.concurrent.atomic.AtomicInteger
 @Service
 class InteractiveBrokersCorrelationService(
     accountWrapper: LoggingAccountWrapper,
-    connectionWrapper: LoggingConnectionWrapper,
     contractWrapper: LoggingContractWrapper,
-    errorWrapper: LoggingErrorWrapper,
+    errorAndConnectionWrapper: LoggingErrorAndConnectionWrapper,
     orderWrapper: LoggingOrderWrapper,
     tickerWrapper: LoggingTickerWrapper,
     ungroupedWrapper: LoggingUngroupedWrapper
 ) : EAccount by accountWrapper,
-    EConnection by connectionWrapper,
     EContract by contractWrapper,
-    EError by errorWrapper,
+    EError by errorAndConnectionWrapper,
+    EConnection by errorAndConnectionWrapper,
     EOrder by orderWrapper,
     ETicker by tickerWrapper,
     EUngrouped by ungroupedWrapper,
