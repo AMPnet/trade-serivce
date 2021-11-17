@@ -11,6 +11,7 @@ import org.springframework.beans.factory.DisposableBean
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.stereotype.Service
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
 @Service
@@ -23,9 +24,11 @@ class InteractiveBrokersConnectionService(
     companion object : KLogging()
 
     private val signal = EJavaSignal()
+    private val readerRunning = AtomicBoolean(false)
+    private val isReconnecting = AtomicBoolean(false)
+
     final val client = EClientSocket(correlationService, signal)
 
-    @Suppress("MagicNumber")
     override fun afterPropertiesSet() {
         logger.info {
             "Connecting to InteractiveBrokers API @ ${interactiveBrokersProperties.host}:" +
@@ -34,11 +37,48 @@ class InteractiveBrokersConnectionService(
         client.eConnect(interactiveBrokersProperties.host, interactiveBrokersProperties.port, 1)
         logger.info { "Connection to InteractiveBrokers API requested" }
 
+        startReaderThread()
+
+        if (!errorWrapper.isConnected()) {
+            throw BeanInitializationException("Unable to connect to InteractiveBrokers API")
+        }
+
+        setMarketDataTypeToDelayed()
+
+        errorWrapper.setReconnectAction {
+            if (!isReconnecting.get()) {
+                isReconnecting.set(true)
+
+                try {
+                    client.eDisconnect()
+                    stopReaderThread()
+
+                    logger.info { "Reconnecting to InteractiveBrokers API..." }
+                    client.eConnect(interactiveBrokersProperties.host, interactiveBrokersProperties.port, 1)
+
+                    startReaderThread()
+                    setMarketDataTypeToDelayed()
+                } finally {
+                    isReconnecting.set(false)
+                }
+            }
+        }
+    }
+
+    override fun destroy() {
+        logger.info { "Disconnecting from InteractiveBrokers API..." }
+        client.eDisconnect()
+        stopReaderThread()
+    }
+
+    private fun startReaderThread() {
         val reader = EReader(client, signal)
         reader.start()
 
+        readerRunning.set(true)
+
         thread {
-            while (client.isConnected) {
+            while (client.isConnected && readerRunning.get()) {
                 signal.waitForSignal()
                 try {
                     reader.processMsgs()
@@ -47,17 +87,14 @@ class InteractiveBrokersConnectionService(
                 }
             }
         }
-
-        if (!errorWrapper.isConnected()) {
-            throw BeanInitializationException("Unable to connect to InteractiveBrokers API")
-        }
-
-        // TODO extract?
-        client.reqMarketDataType(3) // Set to delayed market data (15 min)
     }
 
-    override fun destroy() {
-        logger.info { "Disconnecting from InteractiveBrokers API..." }
-        client.eDisconnect()
+    private fun stopReaderThread() {
+        readerRunning.set(false)
+    }
+
+    @Suppress("MagicNumber")
+    private fun setMarketDataTypeToDelayed() {
+        client.reqMarketDataType(3) // Set to delayed market data (15 min)
     }
 }

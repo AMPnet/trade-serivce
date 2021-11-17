@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicReference
 
 @Component
 class LoggingErrorAndConnectionWrapper : EError, EConnection {
@@ -14,6 +15,11 @@ class LoggingErrorAndConnectionWrapper : EError, EConnection {
     companion object : KLogging()
 
     private val connectionFuture = CompletableFuture<Boolean>()
+    private val reconnectAction = AtomicReference {}
+
+    fun setReconnectAction(reconnectAction: () -> Unit) {
+        this.reconnectAction.set(reconnectAction)
+    }
 
     @Suppress("MagicNumber")
     fun isConnected(): Boolean =
@@ -37,6 +43,8 @@ class LoggingErrorAndConnectionWrapper : EError, EConnection {
 
         if (errorCode == 502) {
             connectionFuture.complete(false)
+        } else if (errorCode == 504) {
+            reconnectAction.get().invoke()
         }
     }
 
