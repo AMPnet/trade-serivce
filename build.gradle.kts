@@ -250,12 +250,12 @@ detekt {
 }
 
 tasks.withType<Detekt> {
-    exclude("com/ampnet/tradeservice/generated/**")
+    exclude("com/ampnet/tradeservice/**")
 }
 
 ktlint {
     filter {
-        exclude("com/ampnet/tradeservice/generated/**")
+        exclude("com/ampnet/tradeservice/**")
     }
 }
 

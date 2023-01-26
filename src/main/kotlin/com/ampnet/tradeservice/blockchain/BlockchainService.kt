@@ -87,12 +87,13 @@ class BlockchainService(
             ?: throw InternalException(ErrorCode.BLOCKCHAIN_JSON_RPC, "Failed to fetch latest block number")
     }
 
+    // 
     internal fun getGasPrice(chainId: Long): BigInteger? {
         chainHandler.getGasPriceFeed(chainId)?.let { url ->
             try {
                 val response = restTemplate
                     .getForObject<GasPriceFeedResponse>(url, GasPriceFeedResponse::class)
-                response.fast?.let { price ->
+                response.fastest?.let { price ->
                     val gWei = Convert.toWei(price.toString(), Convert.Unit.GWEI).toBigInteger()
                     logger.debug { "Fetched gas price in GWei: $gWei" }
                     return gWei
@@ -101,8 +102,16 @@ class BlockchainService(
                 logger.warn { "Failed to get price for feed: $url" }
             }
         }
-        return chainHandler.getBlockchainProperties(chainId)
-            .web3j.ethGasPrice().sendSafely()?.gasPrice
+        val mumbaiChainId = 80001L
+        when(chainId) {
+            mumbaiChainId -> {
+                return Convert.toWei("6", Convert.Unit.GWEI).toBigInteger()
+            }
+            else -> {
+                return chainHandler.getBlockchainProperties(chainId)
+                    .web3j.ethGasPrice().sendSafely()?.gasPrice
+            }
+        }
     }
 
     private data class GasPriceFeedResponse(
