@@ -89,6 +89,7 @@ class BlockchainService(
 
     // 
     internal fun getGasPrice(chainId: Long): BigInteger? {
+
         chainHandler.getGasPriceFeed(chainId)?.let { url ->
             try {
                 val response = restTemplate
@@ -115,10 +116,10 @@ class BlockchainService(
     }
 
     private data class GasPriceFeedResponse(
-        val safeLow: Long?,
-        val standard: Long?,
-        val fast: Long?,
-        val fastest: Long?,
+        val safeLow: Double?,
+        val standard: Double?,
+        val fast: Double?,
+        val fastest: Double?,
         val blockTime: Long?,
         val blockNumber: Long?
     )
